@@ -5,7 +5,7 @@ var defaultSlots = []struct{ name, body string }{
 	{"order", "header,gno,projects,peerdev,game,hearts"},
 	{"header", `# David G.
 
-Short bio goes here.
+Developer engineer at Samouraï Coop.
 
 [GitHub](https://github.com/davd-gzl) · [Peer Dev on YouTube](https://www.youtube.com/@peerdevlearning)`},
 	{"gno", `## Gno core
