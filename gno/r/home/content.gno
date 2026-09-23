@@ -18,21 +18,7 @@ Contributing to gno.land since June 2025, with 70 pull requests merged into gnol
 | GnoVM | 17 |
 | Examples and realms | 14 |
 | Chain: tm2, consensus, package loading | 9 |
-| Tools: gnoweb, gnokey, gnodev | 4 |
-
-### Highlights
-
-| Pull request | Area | What it does |
-| --- | --- | --- |
-| [#5592](https://github.com/gnolang/gno/pull/5592) | Docs | Adds the getting started guide |
-| [#5016](https://github.com/gnolang/gno/pull/5016) | Docs | Adds new r/docs examples: realms that teach gno.land by running |
-| [#5950](https://github.com/gnolang/gno/pull/5950) | Docs | Adds READMEs for the p/nt packages |
-| [#5656](https://github.com/gnolang/gno/pull/5656) | Docs | Consolidates and cleans up the builder documentation |
-| [#4990](https://github.com/gnolang/gno/pull/4990) | Docs | Explains when to use a map and when an AVL tree |
-| [#5385](https://github.com/gnolang/gno/pull/5385) | Stdlib | Adds errors.Unwrap, errors.Is and errors.Join |
-| [#5314](https://github.com/gnolang/gno/pull/5314) | avl | Makes Get return nil for a missing key, across 94 files |
-| [#4717](https://github.com/gnolang/gno/pull/4717) | GovDAO | Requires voters to hold a registered username |
-| [#5217](https://github.com/gnolang/gno/pull/5217) | GnoVM | Meters gas correctly for switch cases |`},
+| Tools: gnoweb, gnokey, gnodev | 4 |`},
 	{"projects", `## Projects
 
 | Project | What I did |
