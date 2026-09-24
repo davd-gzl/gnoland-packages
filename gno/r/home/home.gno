@@ -85,6 +85,23 @@ func Set(cur realm, name, body string) {
 	slots.Set(name, body)
 }
 
+// SetActivity refreshes the three charts in one transaction. Only the admin
+// can call it. Its three arguments are the bodies of the "activity",
+// "reviewactivity" and "areas" sections, as scripts/activity.py prints them;
+// an empty argument leaves that chart as it is.
+func SetActivity(cur realm, activity, reviews, areas string) {
+	assertAdmin(cur)
+	for _, s := range []struct{ name, body string }{
+		{activitySlot, activity},
+		{reviewActivitySlot, reviews},
+		{areasSlot, areas},
+	} {
+		if s.body != "" {
+			slots.Set(s.name, s.body)
+		}
+	}
+}
+
 // Delete removes one section. Only the admin can call it.
 //
 // name is the section to remove, "talks" for example. Its name can stay in

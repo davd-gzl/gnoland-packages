@@ -47,7 +47,7 @@ striped green bar beside each month counts the `gnolang/gno` pull requests
 opened that month, and each chart shows the day it was counted. A realm cannot
 read GitHub, so the numbers are a snapshot in the `activity`, `reviewactivity`
 and `areas` sections. `scripts/activity.py` counts them again with `gh` and
-prints the three `gnokey` commands that store them:
+prints the one `gnokey` command that stores all three, through `SetActivity`:
 
 ```bash
 ./scripts/activity.py

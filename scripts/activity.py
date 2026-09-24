@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prints the gnokey commands that refresh the three charts on the home page.
+"""Prints the gnokey command that refreshes the three charts on the home page.
 
     ./scripts/activity.py [github-login] [gnokey-key]
 
@@ -157,7 +157,6 @@ revs, rev_repos = chart("reviews", "per month, on the same repositories",
 
 for title, repos in (("Merged pull requests", pr_repos), ("Reviews", rev_repos)):
     print(f"# {title}: " + ", ".join(f"{r} {n}" for r, n in repos.most_common()))
-for slot, data in (("activity", prs), ("reviewactivity", revs), ("areas", areas())):
-    print(f"\ngnokey maketx call -pkgpath {PKG} -func Set -args {slot} -args '{data}' "
-          f"-gas-fee 10000ugnot -gas-wanted 10000000 -max-deposit 1000000ugnot -broadcast -chainid gnoland-1 "
-          f"-remote https://rpc.gno.land:443 {key}")
+print(f"\ngnokey maketx call -pkgpath {PKG} -func SetActivity -args '{prs}' -args '{revs}' -args '{areas()}' "
+      f"-gas-fee 20000ugnot -gas-wanted 20000000 -max-deposit 1000000ugnot -broadcast -chainid gnoland-1 "
+      f"-remote https://rpc.gno.land:443 {key}")

@@ -135,3 +135,22 @@ func TestHeroTextIsEditable(cur realm, t *testing.T) {
 
 	Set(cross(cur), heroSlot, old)
 }
+
+func TestSetActivity(cur realm, t *testing.T) {
+	oldPR, oldRev, oldAreas := Get(activitySlot), Get(reviewActivitySlot), Get(areasSlot)
+	testing.SetRealm(testing.NewUserRealm(testutils.TestAddress("mallory")))
+	uassert.AbortsWithMessage(t, cur, "unauthorized", func() { SetActivity(cross(cur), "x", "x", "x") })
+	uassert.Equal(t, oldPR, Get(activitySlot))
+
+	testing.SetRealm(testing.NewUserRealm(admin))
+	SetActivity(cross(cur), "title a; series s; 2026-01 1", "", "title c; slice 3 Docs")
+	uassert.Equal(t, "title a; series s; 2026-01 1", Get(activitySlot))
+	uassert.Equal(t, oldRev, Get(reviewActivitySlot)) // empty leaves it as it is
+	uassert.Equal(t, "title c; slice 3 Docs", Get(areasSlot))
+	out := renderChart(activitySlot)
+	raw, err := base64.StdEncoding.DecodeString(out[strings.Index(out, "base64,")+7 : len(out)-2])
+	uassert.NoError(t, err)
+	uassert.True(t, strings.Contains(string(raw), ">1 a</text>"))
+
+	SetActivity(cross(cur), oldPR, oldRev, oldAreas)
+}
