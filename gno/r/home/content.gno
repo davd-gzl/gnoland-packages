@@ -14,8 +14,6 @@ Developer engineer at [Samouraï Coop](https://www.samourai.world/).
 
 Contributing to [gno.land](https://gno.land) since May 2025, with 70 pull requests merged into [gnolang/gno](https://github.com/gnolang/gno) as of 24 September 2026. [All of them are on GitHub](https://github.com/gnolang/gno/pulls?q=is%3Apr+author%3Adavd-gzl+is%3Amerged).
 
-In December 2025 and January 2026 I opened 15 pull requests in gnolang/gno: tied for second of 22 authors in December, and tied for first of 20 in January.
-
 | Field | Merged pull requests |
 | --- | --- |
 | Docs | 26 |
