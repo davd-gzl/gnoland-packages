@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prints the gnokey commands that refresh the two charts on the home page.
+"""Prints the gnokey commands that refresh the three charts on the home page.
 
     ./scripts/activity.py [github-login] [gnokey-key]
 
@@ -9,6 +9,8 @@ organisations. A repository with fewer than MIN_OWN pull requests joins Others; 
 show gnolang/gno against everything else, since it holds nearly all of them.
 A striped bar beside each month counts the gnolang/gno pull requests opened
 that month, merged or not, since a pull request often merges months later.
+The ring splits the merged gnolang/gno pull requests by area, read off the
+conventional-commit prefix of each title.
 Peer Dev commits stack on top as their own series, drawn at one step per
 SCALE_DIV commits, since a commit is a much smaller unit than a pull request.
 """
@@ -16,6 +18,7 @@ SCALE_DIV commits, since a commit is a much smaller unit than a pull request.
 import collections
 import datetime
 import json
+import re
 import subprocess
 import sys
 
@@ -78,6 +81,29 @@ def reviews():
     return out
 
 
+def area(title):
+    m = re.match(r"^(\w+)(?:\(([^)]*)\))?!?:", title)
+    kind, scope = (m.group(1), (m.group(2) or "").lower()) if m else ("", "")
+    if kind == "docs" or "docs" in scope:
+        return "Docs"
+    if scope.startswith("gnovm") or scope == "garbage_collector":
+        return "GnoVM"
+    if scope.startswith("tm2") or scope in ("consensus", "vm/keeper") or "pkgdownload" in title:
+        return "Chain: tm2, consensus, package loading"
+    if scope in ("gnoweb", "gnokey", "gnodev"):
+        return "Tools: gnoweb, gnokey, gnodev"
+    return "Examples and realms"
+
+
+def areas():
+    rows = json.loads(gh("search", "prs", "--author", login, "--repo", "gnolang/gno", "--merged",
+                         "--limit", "1000", "--json", "title"))
+    counts = collections.Counter(area(r["title"]) for r in rows)
+    today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+    return "; ".join(["title pull requests by area", "subtitle merged into gnolang/gno", "updated " + today] +
+                     [f"slice {n} {name}" for name, n in counts.most_common()])
+
+
 def opened_gno():
     rows = json.loads(gh("search", "prs", "--author", login, "--repo", "gnolang/gno",
                          "--limit", "1000", "--json", "createdAt"))
@@ -131,7 +157,7 @@ revs, rev_repos = chart("reviews", "per month, on the same repositories",
 
 for title, repos in (("Merged pull requests", pr_repos), ("Reviews", rev_repos)):
     print(f"# {title}: " + ", ".join(f"{r} {n}" for r, n in repos.most_common()))
-for slot, data in (("activity", prs), ("reviewactivity", revs)):
+for slot, data in (("activity", prs), ("reviewactivity", revs), ("areas", areas())):
     print(f"\ngnokey maketx call -pkgpath {PKG} -func Set -args {slot} -args '{data}' "
           f"-gas-fee 1000000ugnot -gas-wanted 10000000 -broadcast -chainid gnoland-1 "
           f"-remote https://rpc.gno.land:443 {key}")

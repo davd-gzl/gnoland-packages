@@ -2,9 +2,12 @@ package home
 
 import (
 	"encoding/base64"
+	"strconv"
 	"strings"
 	"testing"
 
+	"gno.land/p/nt/avl/v0"
+	"gno.land/p/nt/testutils/v0"
 	"gno.land/p/nt/uassert/v0"
 )
 
@@ -91,4 +94,45 @@ func TestChartEmpty(cur realm, t *testing.T) {
 	Set(cross(cur), activitySlot, old)
 	uassert.AbortsWithMessage(t, cur, "reserved section: banner", func() { Set(cross(cur), "banner", "x") })
 	uassert.AbortsWithMessage(t, cur, "reserved section: reviews", func() { Set(cross(cur), "reviews", "x") })
+	uassert.AbortsWithMessage(t, cur, "reserved section: hero", func() { Set(cross(cur), "hero", "x") })
+	uassert.AbortsWithMessage(t, cur, "reserved section: areachart", func() { Set(cross(cur), "areachart", "x") })
+}
+
+func TestAreas(t *testing.T) {
+	noun, subtitle, updated, slices := parseAreas("title x; subtitle y; updated 2026-09-24; slice 3 Docs; slice 0 Empty; slice y Bad; slice 2 Chain: tm2, consensus")
+	uassert.Equal(t, "x", noun)
+	uassert.Equal(t, "y", subtitle)
+	uassert.Equal(t, "24 Sep 2026", updated)
+	uassert.Equal(t, 2, len(slices))
+	uassert.Equal(t, "Chain: tm2, consensus", slices[1].label)
+
+	ring := decodeChart(t, renderAreas(), "Pull requests by area, merged into gnolang/gno")
+	for _, want := range []string{">70</text>", ">Pull requests by area</text>", ">merged into gnolang/gno</text>", ">Docs</text>", ">26</text>", ">37%</text>", ">updated 24 Sep 2026</text>"} {
+		uassert.True(t, strings.Contains(ring, want), "area ring: "+want)
+	}
+	// The shares add up to the whole ring, the last one taking the rounding.
+	uassert.True(t, strings.Contains(ring, `stroke-dasharray="371 1000" stroke-dashoffset="0"`))
+	uassert.True(t, strings.Contains(ring, `stroke-dashoffset="-941"`))
+	uassert.True(t, strings.Contains(ring, `stroke-dasharray="59 1000"`))
+}
+
+func TestHeartsWall(cur realm, t *testing.T) {
+	hearts = avl.NewTree()
+	wall := decodeChart(t, renderHeartsWall(), "0 hearts")
+	uassert.Equal(t, wallCols, strings.Count(wall, `<use href="#h"`))
+	uassert.Equal(t, 0, strings.Count(wall, `fill="#e63946"`))
+	for i := 0; i < 25; i++ {
+		hearts.Set(testutils.TestAddress("fan"+strconv.Itoa(i)).String(), int64(i))
+	}
+	wall = decodeChart(t, renderHeartsWall(), "25 hearts")
+	uassert.Equal(t, 2*wallCols, strings.Count(wall, `<use href="#h"`))
+	uassert.Equal(t, 25, strings.Count(wall, `fill="#e63946"`))
+	uassert.False(t, strings.Contains(wall, "more</text>"))
+	for i := 25; i < 250; i++ {
+		hearts.Set(testutils.TestAddress("fan"+strconv.Itoa(i)).String(), int64(i))
+	}
+	wall = decodeChart(t, renderHeartsWall(), "250 hearts")
+	uassert.Equal(t, wallCols*wallMaxRows, strings.Count(wall, `fill="#e63946"`))
+	uassert.True(t, strings.Contains(wall, ">and 10 more</text>"))
+	hearts = avl.NewTree()
 }

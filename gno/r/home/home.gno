@@ -5,9 +5,10 @@
 //
 // The page is a list of sections, each a markdown body the owner edits with
 // one Set transaction, so changing the text never needs a redeploy. The slot
-// named "order" lists the sections to show. Four sections are drawn rather
-// than stored: "banner" and "reviews", the activity charts, "game", today's
-// Gnordle, and "hearts", the heart count.
+// named "order" lists the sections to show. Six sections are drawn rather
+// than stored: "hero", the page banner, "banner" and "reviews", the activity
+// charts, "areachart", the ring of pull requests by area, "game", today's
+// Gnordle, and "hearts", the heart count and wall.
 package home
 
 import (
@@ -45,7 +46,7 @@ func Set(cur realm, name, body string) {
 	if name == "" || len(name) > maxNameLen || strings.ContainsAny(name, ", \n") {
 		panic("invalid section name")
 	}
-	if name == "banner" || name == "reviews" || name == "game" || name == "hearts" {
+	if drawnSections[name] {
 		panic("reserved section: " + name)
 	}
 	slots.Set(name, body)
@@ -110,6 +111,10 @@ func renderPage() string {
 	for _, name := range strings.Split(Get(orderSlot), ",") {
 		switch name = strings.TrimSpace(name); name {
 		case "":
+		case "hero":
+			b.WriteString(heroImage())
+		case "areachart":
+			b.WriteString(renderAreas())
 		case "banner":
 			b.WriteString(renderChart(activitySlot))
 		case "reviews":
@@ -130,7 +135,22 @@ func renderPage() string {
 func renderHeartsTeaser() string {
 	return "## Hearts\n\n**" + strconv.Itoa(Hearts()) + "** so far. " +
 		"[Send one](" + home + "$help&func=Heart): one transaction, one per address, " +
-		"forever on chain. [See who did](" + home + ":hearts).\n"
+		"forever on chain. [See who did](" + home + ":hearts).\n\n" + renderHeartsWall()
+}
+
+// drawnSections are rendered from code and state, so Set refuses their names.
+var drawnSections = map[string]bool{
+	"hero": true, "banner": true, "reviews": true, "areachart": true, "game": true, "hearts": true,
+}
+
+// mdText keeps s from closing a markdown link or image label.
+func mdText(s string) string {
+	return strings.NewReplacer("[", "(", "]", ")").Replace(s)
+}
+
+// xmlText escapes s for SVG text and attributes.
+func xmlText(s string) string {
+	return strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", "\"", "&quot;", "'", "&#39;").Replace(s)
 }
 
 func renderHearts() string {
