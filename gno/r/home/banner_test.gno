@@ -34,6 +34,17 @@ func TestParseActivity(t *testing.T) {
 	uassert.Equal(t, "", formatDay("2026-13-01"))
 }
 
+func TestFillKeepsRepoColour(t *testing.T) {
+	// gnodaokit keeps its colour wherever it sits in a chart's series.
+	a := activity{series: []string{"gnolang/gno", "gnodaokit"}}
+	b := activity{series: []string{"gnodaokit"}}
+	uassert.Equal(t, repoFills["gnodaokit"], a.fill(1))
+	uassert.Equal(t, repoFills["gnodaokit"], b.fill(0))
+	c := activity{series: []string{"unlisted-repo", "Others"}}
+	uassert.Equal(t, c.fill(0), c.fill(0))
+	uassert.Equal(t, othersFill, c.fill(1))
+}
+
 func decodeChart(t *testing.T, out, alt string) string {
 	prefix := "![" + alt + "](data:image/svg+xml;base64,"
 	uassert.True(t, strings.HasPrefix(out, prefix), "prefix of "+alt)
@@ -60,10 +71,11 @@ func TestCharts(t *testing.T) {
 	uassert.True(t, strings.Contains(prs, ">updated 24 Sep 2026</text>"))
 
 	revs := decodeChart(t, renderChart(reviewActivitySlot), "Reviews per month, by repository")
-	for _, want := range []string{">404 reviews</text>", ">gnolang/gno 357</text>", ">gnolove 14</text>"} {
+	for _, want := range []string{">404 reviews</text>", ">gnolang/gno 357</text>", ">Others 47</text>", ">per month, on the same repositories</text>"} {
 		uassert.True(t, strings.Contains(revs, want), "reviews chart: "+want)
 	}
 	uassert.False(t, strings.Contains(revs, "#fbbf24"))
+	uassert.False(t, strings.Contains(revs, ">gnolove"))
 	uassert.False(t, strings.Contains(revs, `fill="url(#o)"`))
 	uassert.True(t, strings.Contains(revs, ">updated 24 Sep 2026</text>"))
 

@@ -5,7 +5,8 @@
 
 One chart counts merged pull requests per month, the other pull request
 reviews, both on public repositories of the gnolang, gnoverse and samouraiworld
-organisations. A repository with fewer than MIN_OWN in a chart joins Others.
+organisations. A repository with fewer than MIN_OWN pull requests joins Others; reviews
+show gnolang/gno against everything else, since it holds nearly all of them.
 A striped bar beside each month counts the gnolang/gno pull requests opened
 that month, merged or not, since a pull request often merges months later.
 Peer Dev commits stack on top as their own series, drawn at one step per
@@ -25,7 +26,8 @@ SKIP = {  # automated workspaces and repositories outside gno.land
     "samouraiworld/zenao",
 }
 SCALED_REPO, SCALED_NAME, SCALE_DIV = "samouraiworld/peerdev", "Peer Dev", 10
-MIN_OWN = 5
+MIN_OWN = 5  # reviews run MIN_OWN_REVIEWS: gnolang/gno holds nearly all of them
+MIN_OWN_REVIEWS = 1000
 PKG = "gno.land/r/g1rayfgklwl0aspz488wvrcrvt7t2quy6q06lgk2/home"
 
 login = sys.argv[1] if len(sys.argv) > 1 else "davd-gzl"
@@ -95,9 +97,9 @@ def months_between(first, last):
         y, m = (y + 1, 1) if m == 12 else (y, m + 1)
 
 
-def chart(noun, rows, scaled=None, opened=None):
+def chart(noun, subtitle, rows, min_own=MIN_OWN, scaled=None, opened=None):
     per_repo = collections.Counter(repo for _, repo in rows)
-    own = [r for r, n in per_repo.most_common() if n >= MIN_OWN]
+    own = [r for r, n in per_repo.most_common() if n >= min_own]
     series = ["gnolang/gno"] + [r for r in own if r != "gnolang/gno"]
     grid = collections.defaultdict(collections.Counter)
     for month, repo in rows:
@@ -110,7 +112,7 @@ def chart(noun, rows, scaled=None, opened=None):
         names.append(SCALED_NAME)
         labels.append(SCALED_NAME)
     today = datetime.datetime.now(datetime.timezone.utc)
-    lines = ["title " + noun, "series " + ",".join(labels)]
+    lines = ["title " + noun, "subtitle " + subtitle, "series " + ",".join(labels)]
     if scaled:
         lines.append(f"scale {SCALED_NAME},{SCALE_DIV},commits")
     if opened:
@@ -122,8 +124,10 @@ def chart(noun, rows, scaled=None, opened=None):
     return "; ".join(lines), per_repo
 
 
-prs, pr_repos = chart("merged pull requests", pull_requests(), scaled_commits(), opened_gno())
-revs, rev_repos = chart("reviews", reviews())
+prs, pr_repos = chart("merged pull requests", "per month, on public gno.land repositories",
+                      pull_requests(), scaled=scaled_commits(), opened=opened_gno())
+revs, rev_repos = chart("reviews", "per month, on the same repositories",
+                        reviews(), min_own=MIN_OWN_REVIEWS)
 
 for title, repos in (("Merged pull requests", pr_repos), ("Reviews", rev_repos)):
     print(f"# {title}: " + ", ".join(f"{r} {n}" for r, n in repos.most_common()))

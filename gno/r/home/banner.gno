@@ -12,6 +12,7 @@ import (
 // Set commands that refresh them. A section reads, lines split by ";":
 //
 //	title merged pull requests
+//	subtitle per month, on public gno.land repositories
 //	series gnolang/gno,gnodaokit,Others,Peer Dev
 //	scale Peer Dev,10,commits
 //	outline gnolang/gno pull requests opened
@@ -34,8 +35,17 @@ const (
 )
 
 var (
-	monthNames  = []string{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}
-	seriesFills = []string{"#3ddc97", "#7aa2ff", "#c084fc", "#f472b6", "#2dd4bf"}
+	monthNames = []string{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}
+	// A repository keeps its colour in both charts; one not listed here takes
+	// a spare colour picked from its name.
+	repoFills = map[string]string{
+		"gnolang/gno":        "#3ddc97",
+		"gno-onboarding-bot": "#7aa2ff",
+		"gnodaokit":          "#c084fc",
+		"awesome-gno":        "#f472b6",
+		"gnolove":            "#2dd4bf",
+	}
+	spareFills = []string{"#fb923c", "#a3e635", "#38bdf8", "#e879f9"}
 )
 
 type month struct {
@@ -46,6 +56,7 @@ type month struct {
 
 type activity struct {
 	noun      string
+	subtitle  string
 	series    []string
 	scaled    string // the series counted in another unit, or ""
 	scaleDiv  int
@@ -63,6 +74,8 @@ func parseActivity(spec string) activity {
 		switch {
 		case strings.HasPrefix(line, "title "):
 			a.noun = strings.TrimSpace(line[6:])
+		case strings.HasPrefix(line, "subtitle "):
+			a.subtitle = strings.TrimSpace(line[9:])
 		case strings.HasPrefix(line, "series "):
 			for _, s := range strings.Split(line[7:], ",") {
 				a.series = append(a.series, strings.TrimSpace(s))
@@ -138,13 +151,21 @@ func formatDay(s string) string {
 }
 
 func (a activity) fill(i int) string {
-	switch a.series[i] {
+	name := a.series[i]
+	switch name {
 	case "Others":
 		return othersFill
 	case a.scaled:
 		return scaledFill
 	}
-	return seriesFills[i%len(seriesFills)]
+	if f, ok := repoFills[name]; ok {
+		return f
+	}
+	sum := 0
+	for j := 0; j < len(name); j++ {
+		sum += int(name[j])
+	}
+	return spareFills[sum%len(spareFills)]
 }
 
 // drawn returns how many steps series i takes in the bar, rounding a scaled
@@ -217,10 +238,12 @@ func renderChart(slot string) string {
 		".n{font:600 11px sans-serif;text-anchor:middle}.m{font:11px sans-serif;text-anchor:middle}" +
 		".u{font:12px sans-serif;text-anchor:end}</style>")
 	b.WriteString(`<defs><pattern id="o" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">` +
-		`<rect width="2" height="5" fill="` + seriesFills[0] + `"/></pattern></defs>`)
+		`<rect width="2" height="5" fill="` + repoFills["gnolang/gno"] + `"/></pattern></defs>`)
 	rect(&b, 0, 0, chartWidth, height, 12, "#10231c")
 	text(&b, chartX, 42, "h", "#ffffff", strconv.Itoa(sum)+" "+a.noun)
-	text(&b, chartX, 66, "s", "#9fc9b4", "per month, on public gno.land repositories")
+	if a.subtitle != "" {
+		text(&b, chartX, 66, "s", "#9fc9b4", a.subtitle)
+	}
 	if a.updated != "" {
 		text(&b, chartWidth-chartX, 42, "u", "#9fc9b4", "updated "+a.updated)
 	}

@@ -27,7 +27,7 @@ func TestDefaultPage(t *testing.T) {
 	page := Render("")
 	for _, want := range []string{
 		"# David G.", "Developer engineer at Samouraï Coop.", "## Gno core", "## Projects", "## Peer Dev",
-		"## Gnordle", "[Play puzzle #1](" + home + ":wordle)",
+		"## Gnordle", "[Play puzzle #1](" + home + ":wordle)", "[GnoVM, explained](",
 		"## Hearts", "**0** so far.", "$help&func=Heart",
 	} {
 		uassert.True(t, strings.Contains(page, want), "missing: "+want)
