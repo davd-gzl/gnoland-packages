@@ -253,8 +253,10 @@ func renderChart(slot string) string {
 	barW := step * 2 / 3
 	stripeW := 0
 	if a.outline != "" {
-		// The striped bar and the stack share the month's slot, opened first.
-		barW, stripeW = step*2/5, step/4
+		// The striped bar and the stack share the month's slot, opened first,
+		// at the same width.
+		barW = step * 2 / 5
+		stripeW = barW
 	}
 	for i, m := range a.months {
 		sx := chartX + i*step + (step-barW-stripeW-2)/2
