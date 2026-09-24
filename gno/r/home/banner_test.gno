@@ -54,8 +54,8 @@ func TestCharts(t *testing.T) {
 	}
 	// One amber bar per month with Peer Dev commits, May to November 2025, plus the legend's.
 	uassert.Equal(t, 8, strings.Count(prs, `fill="#fbbf24"`))
-	// One hollow bar per month with opened pull requests, plus the legend's.
-	uassert.Equal(t, 15, strings.Count(prs, `fill="none"`))
+	// One striped bar per month with opened pull requests, plus the legend's.
+	uassert.Equal(t, 15, strings.Count(prs, `fill="url(#o)"`))
 	uassert.True(t, strings.Contains(prs, ">gnolang/gno pull requests opened 131</text>"))
 	uassert.True(t, strings.Contains(prs, ">updated 24 Sep 2026</text>"))
 
@@ -64,7 +64,7 @@ func TestCharts(t *testing.T) {
 		uassert.True(t, strings.Contains(revs, want), "reviews chart: "+want)
 	}
 	uassert.False(t, strings.Contains(revs, "#fbbf24"))
-	uassert.False(t, strings.Contains(revs, `fill="none"`))
+	uassert.False(t, strings.Contains(revs, `fill="url(#o)"`))
 	uassert.True(t, strings.Contains(revs, ">updated 24 Sep 2026</text>"))
 
 	page := Render("")

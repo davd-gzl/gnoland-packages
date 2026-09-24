@@ -20,7 +20,8 @@ import (
 //
 // Each month row carries one count per series. A scaled series counts another
 // unit: its bars are drawn at one step per 10, and it stays out of the totals.
-// The count after "|" draws a hollow bar beside the stack.
+// The count after "|" draws a striped bar in the first series' colour beside
+// the stack.
 
 const (
 	activitySlot       = "activity"
@@ -29,7 +30,6 @@ const (
 	chartX             = 24
 	maxBar             = 90
 	scaledFill         = "#fbbf24"
-	outlineStroke      = "#e2e8f0"
 	othersFill         = "#94a3b8"
 )
 
@@ -50,7 +50,7 @@ type activity struct {
 	scaled    string // the series counted in another unit, or ""
 	scaleDiv  int
 	scaleUnit string
-	outline   string // the hollow bar's legend, or ""
+	outline   string // the striped bar's legend, or ""
 	updated   string // "24 Sep 2026", the day the numbers were counted
 	months    []month
 }
@@ -205,7 +205,7 @@ func renderChart(slot string) string {
 		if x+w > chartWidth-chartX {
 			x, y = chartX, y+22
 		}
-		hollow(&items, x, y-10, 12, 12)
+		rect(&items, x, y-10, 12, 12, 0, "url(#o)")
 		text(&items, x+18, y, "s", "#ffffff", label)
 	}
 	baseline := y + 30 + maxBar
@@ -216,6 +216,8 @@ func renderChart(slot string) string {
 	b.WriteString("<style>.h{font:700 26px sans-serif}.s{font:13px sans-serif}" +
 		".n{font:600 11px sans-serif;text-anchor:middle}.m{font:11px sans-serif;text-anchor:middle}" +
 		".u{font:12px sans-serif;text-anchor:end}</style>")
+	b.WriteString(`<defs><pattern id="o" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">` +
+		`<rect width="2" height="5" fill="` + seriesFills[0] + `"/></pattern></defs>`)
 	rect(&b, 0, 0, chartWidth, height, 12, "#10231c")
 	text(&b, chartX, 42, "h", "#ffffff", strconv.Itoa(sum)+" "+a.noun)
 	text(&b, chartX, 66, "s", "#9fc9b4", "per month, on public gno.land repositories")
@@ -226,20 +228,20 @@ func renderChart(slot string) string {
 
 	step := (chartWidth - 2*chartX) / len(a.months)
 	barW := step * 2 / 3
-	hollowW := 0
+	stripeW := 0
 	if a.outline != "" {
-		// The stack and the hollow bar share the month's slot side by side.
-		barW, hollowW = step*2/5, step/4
+		// The stack and the striped bar share the month's slot side by side.
+		barW, stripeW = step*2/5, step/4
 	}
 	for i, m := range a.months {
-		bx := chartX + i*step + (step-barW-hollowW)/2
-		mid := bx + (barW+hollowW)/2
-		if hollowW > 0 && m.outline > 0 {
+		bx := chartX + i*step + (step-barW-stripeW)/2
+		mid := bx + (barW+stripeW)/2
+		if stripeW > 0 && m.outline > 0 {
 			h := m.outline * maxBar / peak
 			if h == 0 {
 				h = 1
 			}
-			hollow(&b, bx+barW+1, baseline-h, hollowW, h)
+			rect(&b, bx+barW+2, baseline-h, stripeW, h, 0, "url(#o)")
 		}
 		top, total := baseline, 0
 		for j, n := range m.counts {
@@ -276,12 +278,6 @@ func renderChart(slot string) string {
 func rect(b *strings.Builder, x, y, w, h, r int, fill string) {
 	b.WriteString(`<rect x="` + strconv.Itoa(x) + `" y="` + strconv.Itoa(y) + `" width="` + strconv.Itoa(w) +
 		`" height="` + strconv.Itoa(h) + `" rx="` + strconv.Itoa(r) + `" fill="` + fill + `"/>`)
-}
-
-// hollow draws an unfilled rectangle, inset so its stroke stays in the box.
-func hollow(b *strings.Builder, x, y, w, h int) {
-	b.WriteString(`<rect x="` + strconv.Itoa(x) + `.75" y="` + strconv.Itoa(y) + `.75" width="` + strconv.Itoa(w) +
-		`" height="` + strconv.Itoa(h) + `" fill="none" stroke="` + outlineStroke + `" stroke-width="1.5"/>`)
 }
 
 // text writes s as SVG text; callers pass repository names and numbers, so it

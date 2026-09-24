@@ -6,7 +6,7 @@
 One chart counts merged pull requests per month, the other pull request
 reviews, both on public repositories of the gnolang, gnoverse and samouraiworld
 organisations. A repository with fewer than MIN_OWN in a chart joins Others.
-A hollow bar beside each month counts the gnolang/gno pull requests opened
+A striped bar beside each month counts the gnolang/gno pull requests opened
 that month, merged or not, since a pull request often merges months later.
 Peer Dev commits stack on top as their own series, drawn at one step per
 SCALE_DIV commits, since a commit is a much smaller unit than a pull request.
