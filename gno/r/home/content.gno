@@ -7,12 +7,12 @@ var defaultSlots = []struct{ name, body string }{
 	{"reviewactivity", "title reviews; subtitle per month, on the same repositories; series gnolang/gno,Others; updated 2026-09-24; 2025-05 0 1; 2025-06 0 0; 2025-07 0 0; 2025-08 0 11; 2025-09 11 7; 2025-10 2 13; 2025-11 5 1; 2025-12 13 0; 2026-01 24 0; 2026-02 32 2; 2026-03 47 0; 2026-04 30 1; 2026-05 34 0; 2026-06 49 5; 2026-07 51 1; 2026-08 35 0; 2026-09 24 5"},
 	{"header", `# David G.
 
-Developer engineer at Samouraï Coop.
+Developer engineer at [Samouraï Coop](https://www.samourai.world/).
 
 [GitHub](https://github.com/davd-gzl) · [samcrew](/u/samcrew) · [Peer Dev on YouTube](https://www.youtube.com/@peerdevlearning) · [Personal wiki](https://davd-gzl.github.io/personal-wiki/)`},
 	{"gno", `## Gno core
 
-Contributing to gno.land since May 2025, with 70 pull requests merged into gnolang/gno as of 24 September 2026. [All of them are on GitHub](https://github.com/gnolang/gno/pulls?q=is%3Apr+author%3Adavd-gzl+is%3Amerged).
+Contributing to [gno.land](https://gno.land) since May 2025, with 70 pull requests merged into [gnolang/gno](https://github.com/gnolang/gno) as of 24 September 2026. [All of them are on GitHub](https://github.com/gnolang/gno/pulls?q=is%3Apr+author%3Adavd-gzl+is%3Amerged).
 
 In December 2025 and January 2026 I opened 15 pull requests in gnolang/gno: tied for second of 22 authors in December, and tied for first of 20 in January.
 

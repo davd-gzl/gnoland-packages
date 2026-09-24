@@ -26,7 +26,7 @@ func TestDefaultPage(t *testing.T) {
 	setDay(launchDay)
 	page := Render("")
 	for _, want := range []string{
-		"# David G.", "Developer engineer at Samouraï Coop.", "## Gno core", "## Projects", "## Peer Dev",
+		"# David G.", "Developer engineer at [Samouraï Coop](https://www.samourai.world/).", "## Gno core", "## Projects", "## Peer Dev",
 		"## Gnordle", "[Play puzzle #1](" + home + ":wordle)", "[GnoVM, explained](",
 		"## Hearts", "**0** so far.", "$help&func=Heart",
 	} {
