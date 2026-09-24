@@ -12,6 +12,8 @@ The profile page gnoweb shows for the address. Each section is markdown stored
 on chain, so the text changes with one transaction instead of a redeploy. The
 realm is `private = true` in its [`gnomod.toml`](gno/r/home/gnomod.toml): no
 other package can import it, and its deployer can replace it at the same path.
+A redeploy starts from a fresh state: every heart and every section edited
+with `Set` is gone, and the deploy pays its storage deposit again.
 
 The page opens on a banner adapted from the one every Samouraï home realm
 shares, then the bio and three charts drawn on chain: merged pull requests and

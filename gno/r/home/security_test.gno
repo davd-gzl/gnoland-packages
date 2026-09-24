@@ -94,3 +94,18 @@ func TestQueryDoesNotBreakPages(t *testing.T) {
 	setDay(launchDay)
 	uassert.True(t, strings.Contains(Render("wordle/1?guess=crane"), "CRANE"))
 }
+
+func TestLongPathIsRefused(t *testing.T) {
+	setDay(launchDay)
+	// The longest link the game writes: six guesses and a typed one.
+	longest := "wordle/99999/CRANE.SLATE.ROUTE.TRACE.QUERY.PROXY?guess=" + url.QueryEscape("  crane  ")
+	uassert.True(t, len(longest) <= maxPathLen)
+	uassert.False(t, strings.HasPrefix(Render(longest), "# Not found"))
+	for _, p := range []string{
+		"wordle/1?" + strings.Repeat("a=&", 100),
+		"wordle/1/" + strings.Repeat(".", 300),
+		"hearts/" + strings.Repeat("9", 300),
+	} {
+		uassert.True(t, strings.HasPrefix(Render(p), "# Not found"), p[:20])
+	}
+}

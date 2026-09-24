@@ -27,6 +27,9 @@ const (
 	home       = "/r/g1rayfgklwl0aspz488wvrcrvt7t2quy6q06lgk2/home"
 	orderSlot  = "order"
 	maxNameLen = 32
+	// maxPathLen is far above any link the page writes, and turns a long
+	// crafted link away before the query parser, whose cost grows with it.
+	maxPathLen = 256
 )
 
 var (
@@ -95,6 +98,9 @@ func assertAdmin(cur realm) {
 //	"wordle/..."   the Gnordle game
 //	"hearts[/<n>]" the addresses that sent a heart, heartsPerPage per page
 func Render(path string) string {
+	if len(path) > maxPathLen {
+		return "# Not found\n\n[Back home](" + home + ")\n"
+	}
 	// Only the game reads a query; elsewhere one is dropped, so a shared link
 	// carrying ?utm_source=... still shows the page.
 	if !strings.HasPrefix(path, "wordle") {
