@@ -6,8 +6,8 @@
 One chart counts merged pull requests per month, the other pull request
 reviews, both on public repositories of the gnolang, gnoverse and samouraiworld
 organisations. A repository with fewer than MIN_OWN in a chart joins Others.
-Peer Dev commits are marked per active month rather than counted, since a
-commit is a much smaller unit than a pull request.
+Peer Dev commits stack on top as their own series, drawn at one step per
+SCALE_DIV commits, since a commit is a much smaller unit than a pull request.
 """
 
 import collections
@@ -22,7 +22,7 @@ SKIP = {  # automated workspaces and repositories outside gno.land
     "samouraiworld/samourai-visio",
     "samouraiworld/zenao",
 }
-MARK_REPO, MARK_LABEL = "samouraiworld/peerdev", "Peer Dev commits"
+SCALED_REPO, SCALED_NAME, SCALE_DIV = "samouraiworld/peerdev", "Peer Dev", 10
 MIN_OWN = 5
 PKG = "gno.land/r/g1rayfgklwl0aspz488wvrcrvt7t2quy6q06lgk2/home"
 
@@ -74,10 +74,10 @@ def reviews():
     return out
 
 
-def marked_months():
-    dates = gh("api", "--paginate", f"repos/{MARK_REPO}/commits?author={login}&per_page=100",
+def scaled_commits():
+    dates = gh("api", "--paginate", f"repos/{SCALED_REPO}/commits?author={login}&per_page=100",
                "--jq", ".[].commit.author.date")
-    return {d[:7] for d in dates.split()}
+    return collections.Counter(d[:7] for d in dates.split())
 
 
 def months_between(first, last):
@@ -87,7 +87,7 @@ def months_between(first, last):
         y, m = (y + 1, 1) if m == 12 else (y, m + 1)
 
 
-def chart(noun, rows, marks=frozenset(), mark_label=""):
+def chart(noun, rows, scaled=None):
     per_repo = collections.Counter(repo for _, repo in rows)
     own = [r for r, n in per_repo.most_common() if n >= MIN_OWN]
     series = ["gnolang/gno"] + [r for r in own if r != "gnolang/gno"]
@@ -95,17 +95,22 @@ def chart(noun, rows, marks=frozenset(), mark_label=""):
     for month, repo in rows:
         grid[month][repo if repo in series else "Others"] += 1
     names = series + (["Others"] if any("Others" in c for c in grid.values()) else [])
+    labels = [n.split("/")[-1] if n != "gnolang/gno" else n for n in names]
+    if scaled:
+        for month, n in scaled.items():
+            grid[month][SCALED_NAME] = n
+        names.append(SCALED_NAME)
+        labels.append(SCALED_NAME)
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m")
-    lines = ["title " + noun, "series " + ",".join(n.split("/")[-1] if n != "gnolang/gno" else n for n in names)]
-    if marks:
-        lines.append("mark " + mark_label)
-    for month in months_between(min(list(grid) + list(marks)), now):
-        line = month + " " + " ".join(str(grid[month][n]) for n in names)
-        lines.append(line + (" *" if month in marks else ""))
+    lines = ["title " + noun, "series " + ",".join(labels)]
+    if scaled:
+        lines.append(f"scale {SCALED_NAME},{SCALE_DIV},commits")
+    for month in months_between(min(grid), now):
+        lines.append(month + " " + " ".join(str(grid[month][n]) for n in names))
     return "; ".join(lines), per_repo
 
 
-prs, pr_repos = chart("merged pull requests", pull_requests(), marked_months(), MARK_LABEL)
+prs, pr_repos = chart("merged pull requests", pull_requests(), scaled_commits())
 revs, rev_repos = chart("reviews", reviews())
 
 for title, repos in (("Merged pull requests", pr_repos), ("Reviews", rev_repos)):

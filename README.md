@@ -36,7 +36,8 @@ The `order` section lists which sections show, comma separated.
 Two charts open the page: merged pull requests and reviews per month, stacked
 by repository, on public repositories of the gnolang, gnoverse and
 samouraiworld organisations. A repository with fewer than five joins Others,
-and a dot marks each month with Peer Dev commits. A realm cannot read GitHub,
+and Peer Dev commits stack on top in amber, drawn one step per ten
+commits. A realm cannot read GitHub,
 so the numbers are a snapshot in the `activity` and `reviewactivity` sections.
 `scripts/activity.py` counts them again with `gh` and prints the two `gnokey`
 commands that store them:

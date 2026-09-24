@@ -9,17 +9,18 @@ import (
 )
 
 func TestParseActivity(t *testing.T) {
-	a := parseActivity("title reviews; series gnolang/gno,Others; mark Peer Dev\n" +
-		"2025-12 3 1 *; 2026-01 0 0; bad; 2026-13 1 1; 2026-02 x 1; 2026-02 5; 2026-02 5 2")
+	a := parseActivity("title reviews; series gnolang/gno,Peer Dev; scale Peer Dev,10,commits; scale bad\n" +
+		"2025-12 3 21; 2026-01 0 0; bad; 2026-13 1 1; 2026-02 x 1; 2026-02 5; 2026-02 5 2")
 	uassert.Equal(t, "reviews", a.noun)
-	uassert.Equal(t, "Peer Dev", a.markLabel)
-	uassert.Equal(t, 2, len(a.series))
+	uassert.Equal(t, "Peer Dev", a.scaled)
+	uassert.Equal(t, 10, a.scaleDiv)
+	uassert.Equal(t, "commits", a.scaleUnit)
 	uassert.Equal(t, 3, len(a.months))
 	uassert.Equal(t, "Dec 25", a.months[0].label)
-	uassert.True(t, a.months[0].marked)
-	uassert.Equal(t, 1, a.months[0].counts[1])
+	uassert.Equal(t, 21, a.months[0].counts[1])
+	uassert.Equal(t, 3, a.drawn(1, 21)) // rounded up
+	uassert.Equal(t, 3, a.drawn(0, 3))  // an unscaled series draws its count
 	uassert.Equal(t, "Jan 26", a.months[1].label)
-	uassert.False(t, a.months[1].marked)
 	uassert.Equal(t, "Feb", a.months[2].label)
 	uassert.Equal(t, 2, a.months[2].counts[1])
 }
@@ -36,12 +37,13 @@ func TestCharts(t *testing.T) {
 	prs := decodeChart(t, renderChart(activitySlot), "Merged pull requests per month, by repository")
 	for _, want := range []string{
 		">104 merged pull requests</text>", ">gnolang/gno 70</text>", ">gnodaokit 6</text>",
-		">Others 17</text>", ">Peer Dev commits</text>", ">May 25</text>", ">Jan 26</text>",
-		">23</text>", // June 2026: 16 + 6 + 1
+		">Others 17</text>", ">Peer Dev 234 commits, drawn 1 per 10</text>", ">May 25</text>",
+		">Jan 26</text>", ">23</text>", // June 2026: 16 + 6 + 1
+		">5</text>", // July 2025 counts its 5 pull requests and not its 48 commits
 	} {
 		uassert.True(t, strings.Contains(prs, want), "pull requests chart: "+want)
 	}
-	// One mark per month with Peer Dev commits, May to November 2025, plus the legend's.
+	// One amber bar per month with Peer Dev commits, May to November 2025, plus the legend's.
 	uassert.Equal(t, 8, strings.Count(prs, `fill="#fbbf24"`))
 
 	revs := decodeChart(t, renderChart(reviewActivitySlot), "Reviews per month, by repository")
