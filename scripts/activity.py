@@ -6,6 +6,8 @@
 One chart counts merged pull requests per month, the other pull request
 reviews, both on public repositories of the gnolang, gnoverse and samouraiworld
 organisations. A repository with fewer than MIN_OWN in a chart joins Others.
+A hollow bar beside each month counts the gnolang/gno pull requests opened
+that month, merged or not, since a pull request often merges months later.
 Peer Dev commits stack on top as their own series, drawn at one step per
 SCALE_DIV commits, since a commit is a much smaller unit than a pull request.
 """
@@ -74,6 +76,12 @@ def reviews():
     return out
 
 
+def opened_gno():
+    rows = json.loads(gh("search", "prs", "--author", login, "--repo", "gnolang/gno",
+                         "--limit", "1000", "--json", "createdAt"))
+    return collections.Counter(r["createdAt"][:7] for r in rows)
+
+
 def scaled_commits():
     dates = gh("api", "--paginate", f"repos/{SCALED_REPO}/commits?author={login}&per_page=100",
                "--jq", ".[].commit.author.date")
@@ -87,7 +95,7 @@ def months_between(first, last):
         y, m = (y + 1, 1) if m == 12 else (y, m + 1)
 
 
-def chart(noun, rows, scaled=None):
+def chart(noun, rows, scaled=None, opened=None):
     per_repo = collections.Counter(repo for _, repo in rows)
     own = [r for r, n in per_repo.most_common() if n >= MIN_OWN]
     series = ["gnolang/gno"] + [r for r in own if r != "gnolang/gno"]
@@ -101,16 +109,20 @@ def chart(noun, rows, scaled=None):
             grid[month][SCALED_NAME] = n
         names.append(SCALED_NAME)
         labels.append(SCALED_NAME)
-    now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m")
+    today = datetime.datetime.now(datetime.timezone.utc)
     lines = ["title " + noun, "series " + ",".join(labels)]
     if scaled:
         lines.append(f"scale {SCALED_NAME},{SCALE_DIV},commits")
-    for month in months_between(min(grid), now):
-        lines.append(month + " " + " ".join(str(grid[month][n]) for n in names))
+    if opened:
+        lines.append("outline gnolang/gno pull requests opened")
+    lines.append("updated " + today.strftime("%Y-%m-%d"))
+    for month in months_between(min(list(grid) + list(opened or [])), today.strftime("%Y-%m")):
+        line = month + " " + " ".join(str(grid[month][n]) for n in names)
+        lines.append(line + (f" | {opened[month]}" if opened else ""))
     return "; ".join(lines), per_repo
 
 
-prs, pr_repos = chart("merged pull requests", pull_requests(), scaled_commits())
+prs, pr_repos = chart("merged pull requests", pull_requests(), scaled_commits(), opened_gno())
 revs, rev_repos = chart("reviews", reviews())
 
 for title, repos in (("Merged pull requests", pr_repos), ("Reviews", rev_repos)):

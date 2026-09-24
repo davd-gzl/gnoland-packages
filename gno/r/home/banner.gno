@@ -14,10 +14,13 @@ import (
 //	title merged pull requests
 //	series gnolang/gno,gnodaokit,Others,Peer Dev
 //	scale Peer Dev,10,commits
-//	2025-07 4 0 1 48
+//	outline gnolang/gno pull requests opened
+//	updated 2026-09-24
+//	2025-07 4 0 1 48 | 3
 //
 // Each month row carries one count per series. A scaled series counts another
 // unit: its bars are drawn at one step per 10, and it stays out of the totals.
+// The count after "|" draws a hollow bar beside the stack.
 
 const (
 	activitySlot       = "activity"
@@ -26,6 +29,7 @@ const (
 	chartX             = 24
 	maxBar             = 90
 	scaledFill         = "#fbbf24"
+	outlineStroke      = "#e2e8f0"
 	othersFill         = "#94a3b8"
 )
 
@@ -35,8 +39,9 @@ var (
 )
 
 type month struct {
-	label  string // "Jul", or "Jan 26" where a year starts
-	counts []int
+	label   string // "Jul", or "Jan 26" where a year starts
+	counts  []int
+	outline int
 }
 
 type activity struct {
@@ -45,6 +50,8 @@ type activity struct {
 	scaled    string // the series counted in another unit, or ""
 	scaleDiv  int
 	scaleUnit string
+	outline   string // the hollow bar's legend, or ""
+	updated   string // "24 Sep 2026", the day the numbers were counted
 	months    []month
 }
 
@@ -70,6 +77,10 @@ func parseActivity(spec string) activity {
 				continue
 			}
 			a.scaled, a.scaleDiv, a.scaleUnit = strings.TrimSpace(parts[0]), div, strings.TrimSpace(parts[2])
+		case strings.HasPrefix(line, "outline "):
+			a.outline = strings.TrimSpace(line[8:])
+		case strings.HasPrefix(line, "updated "):
+			a.updated = formatDay(strings.TrimSpace(line[8:]))
 		default:
 			if m, ok := parseMonth(line, len(a.series), len(a.months) == 0); ok {
 				a.months = append(a.months, m)
@@ -92,10 +103,18 @@ func parseMonth(line string, width int, first bool) (month, bool) {
 	if m == 1 || first {
 		out.label += " " + fields[0][2:4]
 	}
-	if len(fields)-1 != width || width == 0 {
+	counts := fields[1:]
+	if n := len(counts); n >= 2 && counts[n-2] == "|" {
+		v, err := strconv.Atoi(counts[n-1])
+		if err != nil || v < 0 {
+			return month{}, false
+		}
+		out.outline, counts = v, counts[:n-2]
+	}
+	if len(counts) != width || width == 0 {
 		return month{}, false
 	}
-	for _, f := range fields[1:] {
+	for _, f := range counts {
 		n, err := strconv.Atoi(f)
 		if err != nil || n < 0 {
 			return month{}, false
@@ -103,6 +122,19 @@ func parseMonth(line string, width int, first bool) (month, bool) {
 		out.counts = append(out.counts, n)
 	}
 	return out, true
+}
+
+// formatDay turns 2026-09-24 into "24 Sep 2026", or "" when it is not a date.
+func formatDay(s string) string {
+	if len(s) != 10 || s[4] != '-' || s[7] != '-' {
+		return ""
+	}
+	m, err1 := strconv.Atoi(s[5:7])
+	d, err2 := strconv.Atoi(s[8:])
+	if err1 != nil || err2 != nil || m < 1 || m > 12 || d < 1 || d > 31 {
+		return ""
+	}
+	return strconv.Itoa(d) + " " + monthNames[m-1] + " " + s[:4]
 }
 
 func (a activity) fill(i int) string {
@@ -132,8 +164,12 @@ func renderChart(slot string) string {
 		return ""
 	}
 	totals := make([]int, len(a.series))
-	peak, sum := 1, 0
+	peak, sum, outlined := 1, 0, 0
 	for _, m := range a.months {
+		outlined += m.outline
+		if m.outline > peak {
+			peak = m.outline
+		}
 		steps := 0
 		for i, n := range m.counts {
 			totals[i] += n
@@ -163,23 +199,48 @@ func renderChart(slot string) string {
 		text(&items, x+18, y, "s", "#ffffff", label)
 		x += w + 12
 	}
+	if a.outline != "" {
+		label := a.outline + " " + strconv.Itoa(outlined)
+		w := 24 + len(label)*7
+		if x+w > chartWidth-chartX {
+			x, y = chartX, y+22
+		}
+		hollow(&items, x, y-10, 12, 12)
+		text(&items, x+18, y, "s", "#ffffff", label)
+	}
 	baseline := y + 30 + maxBar
 	height := baseline + 34
 
 	sh, sw := strconv.Itoa(height), strconv.Itoa(chartWidth)
 	b.WriteString(`<svg xmlns="http://www.w3.org/2000/svg" width="` + sw + `" height="` + sh + `" viewBox="0 0 ` + sw + ` ` + sh + `">`)
 	b.WriteString("<style>.h{font:700 26px sans-serif}.s{font:13px sans-serif}" +
-		".n{font:600 11px sans-serif;text-anchor:middle}.m{font:11px sans-serif;text-anchor:middle}</style>")
+		".n{font:600 11px sans-serif;text-anchor:middle}.m{font:11px sans-serif;text-anchor:middle}" +
+		".u{font:12px sans-serif;text-anchor:end}</style>")
 	rect(&b, 0, 0, chartWidth, height, 12, "#10231c")
 	text(&b, chartX, 42, "h", "#ffffff", strconv.Itoa(sum)+" "+a.noun)
 	text(&b, chartX, 66, "s", "#9fc9b4", "per month, on public gno.land repositories")
+	if a.updated != "" {
+		text(&b, chartWidth-chartX, 42, "u", "#9fc9b4", "updated "+a.updated)
+	}
 	b.WriteString(items.String())
 
 	step := (chartWidth - 2*chartX) / len(a.months)
 	barW := step * 2 / 3
+	hollowW := 0
+	if a.outline != "" {
+		// The stack and the hollow bar share the month's slot side by side.
+		barW, hollowW = step*2/5, step/4
+	}
 	for i, m := range a.months {
-		bx := chartX + i*step + (step-barW)/2
-		mid := bx + barW/2
+		bx := chartX + i*step + (step-barW-hollowW)/2
+		mid := bx + (barW+hollowW)/2
+		if hollowW > 0 && m.outline > 0 {
+			h := m.outline * maxBar / peak
+			if h == 0 {
+				h = 1
+			}
+			hollow(&b, bx+barW+1, baseline-h, hollowW, h)
+		}
 		top, total := baseline, 0
 		for j, n := range m.counts {
 			d := a.drawn(j, n)
@@ -199,7 +260,7 @@ func renderChart(slot string) string {
 		if top == baseline {
 			rect(&b, bx, baseline-2, barW, 2, 0, "#2c4a3e")
 		} else if total > 0 {
-			text(&b, mid, top-5, "n", "#ffffff", strconv.Itoa(total))
+			text(&b, bx+barW/2, top-5, "n", "#ffffff", strconv.Itoa(total))
 		}
 		text(&b, mid, baseline+18, "m", "#9fc9b4", m.label)
 	}
@@ -215,6 +276,12 @@ func renderChart(slot string) string {
 func rect(b *strings.Builder, x, y, w, h, r int, fill string) {
 	b.WriteString(`<rect x="` + strconv.Itoa(x) + `" y="` + strconv.Itoa(y) + `" width="` + strconv.Itoa(w) +
 		`" height="` + strconv.Itoa(h) + `" rx="` + strconv.Itoa(r) + `" fill="` + fill + `"/>`)
+}
+
+// hollow draws an unfilled rectangle, inset so its stroke stays in the box.
+func hollow(b *strings.Builder, x, y, w, h int) {
+	b.WriteString(`<rect x="` + strconv.Itoa(x) + `.75" y="` + strconv.Itoa(y) + `.75" width="` + strconv.Itoa(w) +
+		`" height="` + strconv.Itoa(h) + `" fill="none" stroke="` + outlineStroke + `" stroke-width="1.5"/>`)
 }
 
 // text writes s as SVG text; callers pass repository names and numbers, so it

@@ -23,6 +23,15 @@ func TestParseActivity(t *testing.T) {
 	uassert.Equal(t, "Jan 26", a.months[1].label)
 	uassert.Equal(t, "Feb", a.months[2].label)
 	uassert.Equal(t, 2, a.months[2].counts[1])
+
+	b := parseActivity("title x; series a; outline opened; updated 2026-09-24; " +
+		"2026-01 1 | 8; 2026-02 2 |; 2026-03 3 | y; 2026-04 4")
+	uassert.Equal(t, "opened", b.outline)
+	uassert.Equal(t, "24 Sep 2026", b.updated)
+	uassert.Equal(t, 2, len(b.months)) // "|" with no count and a non-number are rejected
+	uassert.Equal(t, 8, b.months[0].outline)
+	uassert.Equal(t, 0, b.months[1].outline)
+	uassert.Equal(t, "", formatDay("2026-13-01"))
 }
 
 func decodeChart(t *testing.T, out, alt string) string {
@@ -45,12 +54,18 @@ func TestCharts(t *testing.T) {
 	}
 	// One amber bar per month with Peer Dev commits, May to November 2025, plus the legend's.
 	uassert.Equal(t, 8, strings.Count(prs, `fill="#fbbf24"`))
+	// One hollow bar per month with opened pull requests, plus the legend's.
+	uassert.Equal(t, 15, strings.Count(prs, `fill="none"`))
+	uassert.True(t, strings.Contains(prs, ">gnolang/gno pull requests opened 131</text>"))
+	uassert.True(t, strings.Contains(prs, ">updated 24 Sep 2026</text>"))
 
 	revs := decodeChart(t, renderChart(reviewActivitySlot), "Reviews per month, by repository")
 	for _, want := range []string{">404 reviews</text>", ">gnolang/gno 357</text>", ">gnolove 14</text>"} {
 		uassert.True(t, strings.Contains(revs, want), "reviews chart: "+want)
 	}
 	uassert.False(t, strings.Contains(revs, "#fbbf24"))
+	uassert.False(t, strings.Contains(revs, `fill="none"`))
+	uassert.True(t, strings.Contains(revs, ">updated 24 Sep 2026</text>"))
 
 	page := Render("")
 	uassert.True(t, strings.Index(page, "Merged pull requests per month") < strings.Index(page, "Reviews per month"))
