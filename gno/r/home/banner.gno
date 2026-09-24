@@ -254,16 +254,16 @@ func renderChart(slot string) string {
 	stripeW := 0
 	if a.outline != "" {
 		// The striped bar and the stack share the month's slot, opened first,
-		// at the same width.
+		// at the same width and touching.
 		barW = step * 2 / 5
 		stripeW = barW
 	}
 	for i, m := range a.months {
-		sx := chartX + i*step + (step-barW-stripeW-2)/2
-		mid := sx + (barW+stripeW+2)/2
+		sx := chartX + i*step + (step-barW-stripeW)/2
+		mid := sx + (barW+stripeW)/2
 		bx := sx
 		if stripeW > 0 {
-			bx = sx + stripeW + 2
+			bx = sx + stripeW
 			if m.outline > 0 {
 				h := m.outline * maxBar / peak
 				if h == 0 {
