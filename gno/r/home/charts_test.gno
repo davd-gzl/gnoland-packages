@@ -134,5 +134,6 @@ func TestHeartsWall(cur realm, t *testing.T) {
 	wall = decodeChart(t, renderHeartsWall(), "250 hearts")
 	uassert.Equal(t, wallCols*wallMaxRows, strings.Count(wall, `fill="#e63946"`))
 	uassert.True(t, strings.Contains(wall, ">and 10 more</text>"))
+	uassert.True(t, strings.Contains(wall, `<text x="348" y="316" text-anchor="middle" fill="#9fc9b4" style="font:13px sans-serif">and 10 more</text>`))
 	hearts = avl.NewTree()
 }

@@ -52,7 +52,7 @@ func renderHeartsWall() string {
 	}
 	if more > 0 {
 		b.WriteString(`<text x="` + strconv.Itoa(w/2) + `" y="` + strconv.Itoa(h-14) + `" text-anchor="middle" ` +
-			`font:13px sans-serif fill="#9fc9b4" style="font:13px sans-serif">and ` + strconv.Itoa(more) + ` more</text>`)
+			`fill="#9fc9b4" style="font:13px sans-serif">and ` + strconv.Itoa(more) + ` more</text>`)
 	}
 	b.WriteString("</svg>")
 	return "![" + strconv.Itoa(n) + " hearts](data:image/svg+xml;base64," + base64.StdEncoding.EncodeToString([]byte(b.String())) + ")\n"
