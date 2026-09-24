@@ -9,7 +9,7 @@ var defaultSlots = []struct{ name, body string }{
 
 Developer engineer at Samouraï Coop.
 
-[GitHub](https://github.com/davd-gzl) · [samcrew](/u/samcrew) · [Peer Dev on YouTube](https://www.youtube.com/@peerdevlearning)`},
+[GitHub](https://github.com/davd-gzl) · [samcrew](/u/samcrew) · [Peer Dev on YouTube](https://www.youtube.com/@peerdevlearning) · [Personal wiki](https://davd-gzl.github.io/personal-wiki/)`},
 	{"gno", `## Gno core
 
 Contributing to gno.land since May 2025, with 70 pull requests merged into gnolang/gno as of 24 September 2026. [All of them are on GitHub](https://github.com/gnolang/gno/pulls?q=is%3Apr+author%3Adavd-gzl+is%3Amerged).
