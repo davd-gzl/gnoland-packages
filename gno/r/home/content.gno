@@ -2,15 +2,17 @@ package home
 
 // defaultSlots seeds the page at deploy time. Later edits go through Set.
 var defaultSlots = []struct{ name, body string }{
-	{"order", "header,gno,projects,peerdev,game,hearts"},
+	{"order", "header,banner,reviews,gno,projects,peerdev,game,hearts"},
+	{"activity", "title merged pull requests; series gnolang/gno,gno-onboarding-bot,gnodaokit,awesome-gno,Others; mark Peer Dev commits; 2025-05 0 0 0 0 0 *; 2025-06 0 0 0 0 0 *; 2025-07 4 0 0 0 1 *; 2025-08 0 0 5 0 3 *; 2025-09 4 0 0 0 0 *; 2025-10 1 0 0 0 5 *; 2025-11 1 0 1 0 1 *; 2025-12 1 0 0 0 0; 2026-01 1 0 0 0 0; 2026-02 6 0 0 0 0; 2026-03 5 0 0 0 0; 2026-04 12 0 0 0 2; 2026-05 7 0 0 0 1; 2026-06 16 6 0 0 1; 2026-07 8 0 0 5 0; 2026-08 2 0 0 0 0; 2026-09 2 0 0 0 3"},
+	{"reviewactivity", "title reviews; series gnolang/gno,gnolove,gnodaokit,community,gno-onboarding-bot,Others; 2025-05 0 0 0 0 0 1; 2025-06 0 0 0 0 0 0; 2025-07 0 0 0 0 0 0; 2025-08 0 0 11 0 0 0; 2025-09 11 2 2 2 0 1; 2025-10 2 10 0 3 0 0; 2025-11 5 1 0 0 0 0; 2025-12 13 0 0 0 0 0; 2026-01 24 0 0 0 0 0; 2026-02 32 1 0 0 0 1; 2026-03 47 0 0 0 0 0; 2026-04 30 0 0 0 0 1; 2026-05 34 0 0 0 0 0; 2026-06 49 0 0 0 5 0; 2026-07 51 0 1 0 0 0; 2026-08 35 0 0 0 0 0; 2026-09 24 0 0 0 0 5"},
 	{"header", `# David G.
 
 Developer engineer at Samouraï Coop.
 
-[GitHub](https://github.com/davd-gzl) · [Peer Dev on YouTube](https://www.youtube.com/@peerdevlearning)`},
+[GitHub](https://github.com/davd-gzl) · [samcrew](/u/samcrew) · [Peer Dev on YouTube](https://www.youtube.com/@peerdevlearning)`},
 	{"gno", `## Gno core
 
-Contributing to gno.land since June 2025, with 70 pull requests merged into gnolang/gno as of 24 September 2026. [All of them are on GitHub](https://github.com/gnolang/gno/pulls?q=is%3Apr+author%3Adavd-gzl+is%3Amerged).
+Contributing to gno.land since May 2025, with 70 pull requests merged into gnolang/gno as of 24 September 2026. [All of them are on GitHub](https://github.com/gnolang/gno/pulls?q=is%3Apr+author%3Adavd-gzl+is%3Amerged).
 
 | Field | Merged pull requests |
 | --- | --- |

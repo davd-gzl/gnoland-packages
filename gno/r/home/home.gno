@@ -5,8 +5,9 @@
 //
 // The page is a list of sections, each a markdown body the owner edits with
 // one Set transaction, so changing the text never needs a redeploy. The slot
-// named "order" lists the sections to show. Two sections are drawn from state
-// rather than stored: "game", today's Gnordle, and "hearts", the heart count.
+// named "order" lists the sections to show. Four sections are drawn rather
+// than stored: "banner" and "reviews", the activity charts, "game", today's
+// Gnordle, and "hearts", the heart count.
 package home
 
 import (
@@ -44,7 +45,7 @@ func Set(cur realm, name, body string) {
 	if name == "" || len(name) > maxNameLen || strings.ContainsAny(name, ", \n") {
 		panic("invalid section name")
 	}
-	if name == "game" || name == "hearts" {
+	if name == "banner" || name == "reviews" || name == "game" || name == "hearts" {
 		panic("reserved section: " + name)
 	}
 	slots.Set(name, body)
@@ -109,6 +110,10 @@ func renderPage() string {
 	for _, name := range strings.Split(Get(orderSlot), ",") {
 		switch name = strings.TrimSpace(name); name {
 		case "":
+		case "banner":
+			b.WriteString(renderChart(activitySlot))
+		case "reviews":
+			b.WriteString(renderChart(reviewActivitySlot))
 		case "game":
 			b.WriteString(renderGameTeaser())
 		case "hearts":
