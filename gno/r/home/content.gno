@@ -1,6 +1,6 @@
 package home
 
-// hero fills the shared banner in banner.gno.
+// hero holds the banner text a "herotext" section leaves out.
 var hero = heroText{
 	kicker:   "SAMOURAÏ COOP · GNO.LAND",
 	title:    "David G.",
@@ -14,6 +14,7 @@ var hero = heroText{
 var defaultSlots = []struct{ name, body string }{
 	{"order", "hero,header,activityhead,banner,reviews,gno,areachart,projects,peerdev,unrelated,game,hearts"},
 	{"activityhead", "## Activity"},
+	{heroSlot, "kicker SAMOURAÏ COOP · GNO.LAND; title David G.; subtitle Developer engineer at Samouraï Coop; footline gno.land core contributor; alt David G., developer engineer at Samouraï Coop"},
 	{"areas", "title pull requests by area; subtitle merged into gnolang/gno; updated 2026-09-24; slice 26 Docs; slice 17 GnoVM; slice 14 Examples and realms; slice 9 Chain: tm2, consensus, package loading; slice 4 Tools: gnoweb, gnokey, gnodev"},
 	{"activity", "title merged pull requests; subtitle per month, on public gno.land repositories; series gnolang/gno,gno-onboarding-bot,gnodaokit,awesome-gno,Others,Peer Dev; scale Peer Dev,10,commits; outline gnolang/gno pull requests opened; updated 2026-09-24; 2025-05 0 0 0 0 0 25 | 0; 2025-06 0 0 0 0 0 87 | 2; 2025-07 4 0 0 0 1 48 | 3; 2025-08 0 0 5 0 3 27 | 0; 2025-09 4 0 0 0 0 14 | 9; 2025-10 1 0 0 0 5 15 | 0; 2025-11 1 0 1 0 1 18 | 7; 2025-12 1 0 0 0 0 0 | 7; 2026-01 1 0 0 0 0 0 | 8; 2026-02 6 0 0 0 0 0 | 11; 2026-03 5 0 0 0 0 0 | 21; 2026-04 12 0 0 0 2 0 | 17; 2026-05 7 0 0 0 1 0 | 19; 2026-06 16 6 0 0 1 0 | 7; 2026-07 8 0 0 5 0 0 | 15; 2026-08 2 0 0 0 0 0 | 3; 2026-09 2 0 0 0 3 0 | 2"},
 	{"reviewactivity", "title reviews; subtitle per month, on the same repositories; series gnolang/gno,Others; updated 2026-09-24; 2025-05 0 1; 2025-06 0 0; 2025-07 0 0; 2025-08 0 11; 2025-09 11 7; 2025-10 2 13; 2025-11 5 1; 2025-12 13 0; 2026-01 24 0; 2026-02 32 2; 2026-03 47 0; 2026-04 30 1; 2026-05 34 0; 2026-06 49 5; 2026-07 51 1; 2026-08 35 0; 2026-09 24 5"},

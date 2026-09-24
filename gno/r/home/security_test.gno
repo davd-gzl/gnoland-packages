@@ -109,3 +109,29 @@ func TestLongPathIsRefused(t *testing.T) {
 		uassert.True(t, strings.HasPrefix(Render(p), "# Not found"), p[:20])
 	}
 }
+
+func TestHeroTextIsEditable(cur realm, t *testing.T) {
+	testing.SetRealm(testing.NewUserRealm(admin))
+	old := Get(heroSlot)
+	decode := func() string {
+		out := heroImage()
+		raw, err := base64.StdEncoding.DecodeString(out[strings.Index(out, "base64,")+7 : len(out)-1])
+		uassert.NoError(t, err)
+		return string(raw)
+	}
+	uassert.True(t, strings.Contains(decode(), ">David G.</text>"))
+
+	Set(cross(cur), heroSlot, "title Dave; subtitle <b>&co</b>; bogus x; tagline hello")
+	svg := decode()
+	uassert.True(t, strings.Contains(svg, ">Dave</text>"))
+	uassert.True(t, strings.Contains(svg, ">&lt;b&gt;&amp;co&lt;/b&gt;</text>"))
+	uassert.True(t, strings.Contains(svg, ">hello</text>"))
+	// A key the section leaves out keeps its default.
+	uassert.True(t, strings.Contains(svg, ">gno.land core contributor</text>"))
+	uassert.True(t, strings.HasPrefix(heroImage(), "![David G., developer engineer at Samouraï Coop]("))
+
+	Set(cross(cur), heroSlot, "alt a ]( trap")
+	uassert.True(t, strings.HasPrefix(heroImage(), "![a )( trap]("))
+
+	Set(cross(cur), heroSlot, old)
+}

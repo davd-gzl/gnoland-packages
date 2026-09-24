@@ -37,7 +37,8 @@ gnokey maketx call -pkgpath gno.land/r/g1rayfgklwl0aspz488wvrcrvt7t2quy6q06lgk2/
 
 The `order` section lists which sections show, comma separated. `hero`,
 `banner`, `reviews`, `areachart`, `game` and `hearts` are drawn by the realm
-and cannot be set.
+and cannot be set. The banner's text is the `herotext` section, `key value`
+pairs split by `;`, such as `title David G.; subtitle Developer engineer`.
 
 The monthly charts count public repositories of the gnolang, gnoverse and
 samouraiworld organisations. A repository with fewer than five joins Others,

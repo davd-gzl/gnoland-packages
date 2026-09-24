@@ -53,6 +53,11 @@ func init() {
 // every section name, comma separated, with no spaces. A name left out of the
 // list is hidden, so copy the current list, from Get("order"), and edit it.
 //
+// name "herotext" is the banner's text: "key value" pairs split by ";", with
+// the keys kicker, the small line on top, title, subtitle, tagline, footline,
+// the small line at the bottom, and alt, the banner's description for screen
+// readers. A key left out keeps its current default.
+//
 // "hero", "banner", "reviews", "areachart", "game" and "hearts" are drawn by
 // the page itself: they cannot be set, only placed through "order".
 //
@@ -60,6 +65,9 @@ func init() {
 //
 //	name: header
 //	body: I'm a developer engineer at [Samouraï Coop](https://www.samourai.world/).
+//
+//	name: herotext
+//	body: title David G.; subtitle Developer engineer at Samouraï Coop; footline Open for contribution
 //
 //	name: talks
 //	body: ## Talks
@@ -179,6 +187,34 @@ func renderHeartsTeaser() string {
 // drawnSections are rendered from code and state, so Set refuses their names.
 var drawnSections = map[string]bool{
 	"hero": true, "banner": true, "reviews": true, "areachart": true, "game": true, "hearts": true,
+}
+
+// heroSlot holds the banner's text, one "key value" pair per field, split by
+// ";": kicker, title, subtitle, tagline, footline and alt, the image's
+// description. A field the section leaves out keeps its value from hero.
+const heroSlot = "herotext"
+
+func currentHero() heroText {
+	h := hero
+	for _, pair := range strings.Split(Get(heroSlot), ";") {
+		key, value, _ := strings.Cut(strings.TrimSpace(pair), " ")
+		value = strings.TrimSpace(value)
+		switch key {
+		case "kicker":
+			h.kicker = value
+		case "title":
+			h.title = value
+		case "subtitle":
+			h.subtitle = value
+		case "tagline":
+			h.tagline = value
+		case "footline":
+			h.footline = value
+		case "alt":
+			h.alt = value
+		}
+	}
+	return h
 }
 
 // mdText keeps s from closing a markdown link or image label.

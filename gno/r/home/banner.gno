@@ -47,6 +47,6 @@ func heroSVG(h heroText) string {
 }
 
 func heroImage() string {
-	return "![" + mdText(hero.alt) + "](data:image/svg+xml;base64," +
-		base64.StdEncoding.EncodeToString([]byte(heroSVG(hero))) + ")"
+	return "![" + mdText(currentHero().alt) + "](data:image/svg+xml;base64," +
+		base64.StdEncoding.EncodeToString([]byte(heroSVG(currentHero()))) + ")"
 }
