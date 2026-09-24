@@ -29,7 +29,7 @@ Edit a section, `header` for example, from the admin key:
 ```bash
 gnokey maketx call -pkgpath gno.land/r/g1rayfgklwl0aspz488wvrcrvt7t2quy6q06lgk2/home \
   -func Set -args header -args "New bio." \
-  -gas-fee 1000000ugnot -gas-wanted 5000000 \
+  -gas-fee 5000ugnot -gas-wanted 5000000 -max-deposit 1000000ugnot \
   -chainid gnoland-1 -remote https://rpc.gno.land:443 <key>
 ```
 

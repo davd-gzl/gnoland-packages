@@ -85,3 +85,12 @@ func TestOrderSurvivesBadEntries(cur realm, t *testing.T) {
 	uassert.True(t, strings.Contains(Render(""), "This page is a contract"))
 	Set(cross(cur), orderSlot, old)
 }
+
+func TestQueryDoesNotBreakPages(t *testing.T) {
+	uassert.Equal(t, Render(""), Render("?utm_source=x"))
+	uassert.Equal(t, Render(""), Render("?fbclid=abc&x=1"))
+	uassert.Equal(t, Render("hearts"), Render("hearts?x=1"))
+	// The game keeps its query: it carries the guess.
+	setDay(launchDay)
+	uassert.True(t, strings.Contains(Render("wordle/1?guess=crane"), "CRANE"))
+}

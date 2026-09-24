@@ -159,5 +159,5 @@ for title, repos in (("Merged pull requests", pr_repos), ("Reviews", rev_repos))
     print(f"# {title}: " + ", ".join(f"{r} {n}" for r, n in repos.most_common()))
 for slot, data in (("activity", prs), ("reviewactivity", revs), ("areas", areas())):
     print(f"\ngnokey maketx call -pkgpath {PKG} -func Set -args {slot} -args '{data}' "
-          f"-gas-fee 1000000ugnot -gas-wanted 10000000 -broadcast -chainid gnoland-1 "
+          f"-gas-fee 10000ugnot -gas-wanted 10000000 -max-deposit 1000000ugnot -broadcast -chainid gnoland-1 "
           f"-remote https://rpc.gno.land:443 {key}")

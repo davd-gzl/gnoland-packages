@@ -95,6 +95,11 @@ func assertAdmin(cur realm) {
 //	"wordle/..."   the Gnordle game
 //	"hearts[/<n>]" the addresses that sent a heart, heartsPerPage per page
 func Render(path string) string {
+	// Only the game reads a query; elsewhere one is dropped, so a shared link
+	// carrying ?utm_source=... still shows the page.
+	if !strings.HasPrefix(path, "wordle") {
+		path, _, _ = strings.Cut(path, "?")
+	}
 	switch {
 	case path == "":
 		return renderPage()
