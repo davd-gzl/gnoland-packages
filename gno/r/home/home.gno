@@ -93,15 +93,15 @@ func assertAdmin(cur realm) {
 //
 //	""             the profile page
 //	"wordle/..."   the Gnordle game
-//	"hearts"       every address that sent a heart
+//	"hearts[/<n>]" the addresses that sent a heart, heartsPerPage per page
 func Render(path string) string {
 	switch {
 	case path == "":
 		return renderPage()
 	case path == "wordle" || strings.HasPrefix(path, "wordle/") || strings.HasPrefix(path, "wordle?"):
 		return renderWordle(path)
-	case path == "hearts":
-		return renderHearts()
+	case path == "hearts" || strings.HasPrefix(path, "hearts/"):
+		return renderHearts(strings.TrimPrefix(strings.TrimPrefix(path, "hearts"), "/"))
 	}
 	return "# Not found\n\n[Back home](" + home + ")\n"
 }
@@ -153,16 +153,42 @@ func xmlText(s string) string {
 	return strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", "\"", "&quot;", "'", "&#39;").Replace(s)
 }
 
-func renderHearts() string {
+// heartsPerPage keeps one page of the list far under the query gas limit,
+// which a list of every heart would pass at about 15,000 of them.
+const heartsPerPage = 100
+
+func renderHearts(page string) string {
+	n := 1
+	if page != "" {
+		v, err := strconv.Atoi(page)
+		if err != nil || v < 1 {
+			return "# Hearts\n\nThere is no such page.\n\n[Back home](" + home + ")\n"
+		}
+		n = v
+	}
+	pages := (hearts.Size() + heartsPerPage - 1) / heartsPerPage
+	if n > 1 && n > pages {
+		return "# Hearts\n\nThere is no such page.\n\n[Back home](" + home + ")\n"
+	}
 	var b strings.Builder
 	b.WriteString("# Hearts\n\n")
 	if hearts.Size() == 0 {
 		b.WriteString("Nobody yet. [Be the first](" + home + "$help&func=Heart).\n")
 	}
-	hearts.Iterate("", "", func(addr string, h any) bool {
+	hearts.IterateByOffset((n-1)*heartsPerPage, heartsPerPage, func(addr string, h any) bool {
 		b.WriteString("- " + addr + ", block " + strconv.FormatInt(h.(int64), 10) + "\n")
 		return false
 	})
+	if pages > 1 {
+		b.WriteString("\nPage " + strconv.Itoa(n) + " of " + strconv.Itoa(pages) + ".")
+		if n > 1 {
+			b.WriteString(" [Previous](" + home + ":hearts/" + strconv.Itoa(n-1) + ")")
+		}
+		if n < pages {
+			b.WriteString(" [Next](" + home + ":hearts/" + strconv.Itoa(n+1) + ")")
+		}
+		b.WriteString("\n")
+	}
 	b.WriteString("\n[Back home](" + home + ")\n")
 	return b.String()
 }

@@ -52,7 +52,7 @@ func TestWordleFlow(t *testing.T) {
 	uassert.False(t, strings.Contains(page, "<gno-form"))
 
 	page = Render("wordle/3?guess=abc")
-	uassert.True(t, strings.Contains(page, "> ABC is not a guess"))
+	uassert.True(t, strings.Contains(page, "> That guess is not five letters, A to Z."))
 	uassert.True(t, strings.Contains(page, `<gno-form path="wordle/3">`))
 
 	page = Render("wordle/1")

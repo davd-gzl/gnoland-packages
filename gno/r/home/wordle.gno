@@ -114,7 +114,9 @@ func renderWordle(path string) string {
 		if validGuess(g) {
 			guesses = append(guesses, g)
 		} else {
-			notice = "> " + g + " is not a guess: type five letters, A to Z.\n\n"
+			// The guess is never echoed: it comes from the link, and markdown in
+			// it would render on this page under the owner's address.
+			notice = "> That guess is not five letters, A to Z.\n\n"
 		}
 	}
 
