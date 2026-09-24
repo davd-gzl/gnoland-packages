@@ -43,7 +43,29 @@ func init() {
 	}
 }
 
-// Set creates or replaces one section. Only the admin can call it.
+// Set writes one section of the page. Only the admin can call it.
+//
+// name is the section to write and body is its markdown. The text sections are
+// "header", the bio at the top, then "gno", "projects", "peerdev" and
+// "unrelated"; any other name creates a new section.
+//
+// name "order" decides which sections show and in which order. Its body lists
+// every section name, comma separated, with no spaces. A name left out of the
+// list is hidden, so copy the current list, from Get("order"), and edit it.
+//
+// "hero", "banner", "reviews", "areachart", "game" and "hearts" are drawn by
+// the page itself: they cannot be set, only placed through "order".
+//
+// Examples, as the two fields of the form:
+//
+//	name: header
+//	body: I'm a developer engineer at [Samouraï Coop](https://www.samourai.world/).
+//
+//	name: talks
+//	body: ## Talks
+//
+//	name: order
+//	body: hero,header,activityhead,banner,reviews,gno,areachart,projects,peerdev,unrelated,talks,game,hearts
 func Set(cur realm, name, body string) {
 	assertAdmin(cur)
 	if name == "" || len(name) > maxNameLen || strings.ContainsAny(name, ", \n") {
@@ -56,6 +78,9 @@ func Set(cur realm, name, body string) {
 }
 
 // Delete removes one section. Only the admin can call it.
+//
+// name is the section to remove, "talks" for example. Its name can stay in
+// "order": a name with no section shows nothing.
 func Delete(cur realm, name string) {
 	assertAdmin(cur)
 	if _, ok := slots.Remove(name); !ok {
@@ -64,6 +89,8 @@ func Delete(cur realm, name string) {
 }
 
 // Get returns a section's markdown, or "" when it does not exist.
+// Get("order") returns the current section list, the one to edit before
+// setting "order".
 func Get(name string) string {
 	if v := slots.Get(name); v != nil {
 		return v.(string)
