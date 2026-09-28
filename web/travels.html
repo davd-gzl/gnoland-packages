@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Travels builder</title>
+<style>
+  :root {
+    --bg: #f8fafc; --panel: #ffffff; --text: #0f172a; --muted: #64748b;
+    --line: #e2e8f0; --accent: #ef4444; --code: #f1f5f9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b1120; --panel: #111827; --text: #e2e8f0; --muted: #94a3b8;
+      --line: #1f2937; --accent: #f87171; --code: #0f172a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  p.lead { color: var(--muted); margin: 0 0 24px; }
+  section {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px; margin-bottom: 16px;
+  }
+  input, button, select {
+    font: inherit; color: inherit; background: var(--bg);
+    border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px;
+  }
+  button { cursor: pointer; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  #search { flex: 1; min-width: 200px; }
+  #results { list-style: none; margin: 8px 0 0; padding: 0; }
+  #results li {
+    display: flex; justify-content: space-between; gap: 8px;
+    padding: 6px 8px; border-radius: 6px; cursor: pointer;
+  }
+  #results li:hover { background: var(--code); }
+  .muted { color: var(--muted); font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; }
+  td, th { padding: 6px 4px; border-bottom: 1px solid var(--line); text-align: left; }
+  th { font-weight: 600; font-size: 13px; color: var(--muted); }
+  td input.year { width: 76px; }
+  td.coord { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+  pre {
+    background: var(--code); border: 1px solid var(--line); border-radius: 6px;
+    padding: 12px; white-space: pre-wrap; word-break: break-all; margin: 8px 0;
+    font-size: 13px;
+  }
+  .cmd { position: relative; }
+  .cmd pre { padding-right: 64px; }
+  .cmd button { position: absolute; top: 6px; right: 6px; font-size: 12px; padding: 2px 8px; }
+  @media (max-width: 560px) { td.coord { display: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Travels builder</h1>
+  <p class="lead">Pick cities or import a Postcards file, then copy the <code>gnokey</code>
+    command that stores them on the travels realm. The page only reads: the cities
+    reach the chain when you run the command.</p>
+
+  <section>
+    <h2>Add a city</h2>
+    <div class="row">
+      <input id="search" placeholder="Search a city, e.g. Amsterdam" autocomplete="off" disabled>
+      <button id="more" hidden>Search all 135,000 cities (17 MB)</button>
+    </div>
+    <div id="status" class="muted">Loading the 10,000 largest cities…</div>
+    <div id="chain" class="muted">Reading the map on chain…</div>
+    <ul id="results"></ul>
+  </section>
+
+  <section>
+    <h2>Import from Postcards</h2>
+    <div class="row">
+      <input type="file" id="file" accept=".json,application/json">
+    </div>
+    <div id="importStatus" class="muted">Export from Postcards as JSON
+      (<code>places.postcards.json</code>). Wishlist places and whole countries are skipped.</div>
+  </section>
+
+  <section>
+    <h2>Cities to send <span id="count" class="muted"></span></h2>
+    <div class="row" style="margin-bottom:8px">
+      <label><input type="radio" name="mode" value="add" checked> Add</label>
+      <label><input type="radio" name="mode" value="remove"> Remove</label>
+      <span style="flex:1"></span>
+      <button id="loadChain">Load the map's cities</button>
+      <button id="clear">Clear list</button>
+    </div>
+    <table>
+      <thead><tr><th>City</th><th>Year</th><th class="coord">Lat, lon</th><th></th></tr></thead>
+      <tbody id="list"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Command</h2>
+    <div class="row" style="margin-bottom:8px">
+      <label>Key <input id="key" value="davd-samourai-multisig"></label>
+    </div>
+    <div id="commands"><p class="muted">Add a city to get the command.</p></div>
+  </section>
+</main>
+
+<script>
+// The realm and chain the command is written for; ?pkg=, ?chain= and ?remote=
+// point the page at a local node instead.
+const params = new URLSearchParams(location.search);
+const PKG = params.get("pkg") || "gno.land/r/g1rayfgklwl0aspz488wvrcrvt7t2quy6q06lgk2/travels";
+const CHAIN = params.get("chain") || "gnoland-1";
+const REMOTE = params.get("remote") || "https://rpc.gno.land:443";
+// Measured on a local node: 200 new cities used 156M gas and 5,369 bytes of
+// storage, at 1ugnot per 1000 gas and 100ugnot per byte. Each figure below
+// keeps a margin over that.
+const PER_TX = 200;
+const GAS_BASE = 5000000;
+const GAS_PER_CITY = 1000000;
+const DEPOSIT_PER_CITY = 5000; // ugnot
+const DATA = "https://raw.githubusercontent.com/offware-apps/Postcards/main/apps/postcards/public/reference/";
+
+const $ = (id) => document.getElementById(id);
+let cities = [];
+let allLoaded = false;
+const lookups = {};
+const list = new Map(); // "CC,name" -> {name, cc, lat, lon, year}
+const onChain = new Map(); // the same, for the cities already on the map
+
+async function load(file) {
+  if (!lookups[file]) {
+    const res = await fetch(DATA + file);
+    if (!res.ok) throw new Error(file + ": HTTP " + res.status);
+    const rows = await res.json();
+    lookups[file] = new Map(rows.map((r) => [r.id, r]));
+  }
+  return lookups[file];
+}
+
+function flag(cc) {
+  return String.fromCodePoint(...[...cc].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
+}
+
+// cleanName drops what the realm refuses and keeps at most 64 bytes.
+function cleanName(s) {
+  s = s.replace(/[,;\[\]\n\r]/g, " ").replace(/\s+/g, " ").trim();
+  const enc = new TextEncoder();
+  while (enc.encode(s).length > 64) s = s.slice(0, -1);
+  return s;
+}
+
+function add(place, year) {
+  const name = cleanName(place.name);
+  if (!name || !/^[A-Z]{2}$/.test(place.countryIso2)) return false;
+  const key = place.countryIso2 + "," + name;
+  const prev = list.get(key);
+  if (prev) {
+    if (year && (!prev.year || year < prev.year)) prev.year = year;
+    return false;
+  }
+  list.set(key, {
+    name, cc: place.countryIso2,
+    lat: Math.round(place.lat * 100), lon: Math.round(place.lon * 100), year: year || 0,
+  });
+  return true;
+}
+
+function search() {
+  const q = $("search").value.trim().toLowerCase();
+  const out = $("results");
+  out.innerHTML = "";
+  if (q.length < 2) return;
+  const pool = allLoaded ? [...lookups["cities-all.json"].values()] : cities;
+  const hits = pool.filter((c) => c.name.toLowerCase().startsWith(q))
+    .sort((a, b) => (b.population || 0) - (a.population || 0)).slice(0, 8);
+  for (const c of hits) {
+    const li = document.createElement("li");
+    li.innerHTML = `<span>${flag(c.countryIso2)} ${esc(c.name)}</span>` +
+      `<span class="muted">${c.countryIso2} · ${(c.population || 0).toLocaleString()}</span>`;
+    li.onclick = () => { add(c, 0); $("search").value = ""; out.innerHTML = ""; render(); $("search").focus(); };
+    out.appendChild(li);
+  }
+  $("more").hidden = allLoaded || hits.length > 0;
+}
+
+function esc(s) {
+  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+function shellQuote(s) { return "'" + s.replace(/'/g, "'\\''") + "'"; }
+
+function render() {
+  const tbody = $("list");
+  tbody.innerHTML = "";
+  for (const [key, v] of list) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${flag(v.cc)} ${esc(v.name)}</td>` +
+      `<td><input class="year" type="number" min="1900" max="2200" value="${v.year || ""}" placeholder="—"></td>` +
+      `<td class="coord">${(v.lat / 100).toFixed(2)}, ${(v.lon / 100).toFixed(2)}</td>` +
+      `<td><button title="Remove from the list">✕</button></td>`;
+    tr.querySelector("input").oninput = (e) => { v.year = parseInt(e.target.value, 10) || 0; commands(); };
+    tr.querySelector("button").onclick = () => { list.delete(key); render(); };
+    tbody.appendChild(tr);
+  }
+  $("count").textContent = list.size ? `(${list.size})` : "";
+  commands();
+}
+
+function commands() {
+  const box = $("commands");
+  box.innerHTML = "";
+  const remove = document.querySelector('input[name="mode"]:checked').value === "remove";
+  // Adding skips what the map already has, and removing keeps only that.
+  const rows = [...list.entries()].filter(([k]) => onChain.has(k) === remove).map(([, v]) => v);
+  const skipped = list.size - rows.length;
+  if (skipped) {
+    const p = document.createElement("p");
+    p.className = "muted";
+    p.textContent = remove
+      ? `${skipped} of the list ${skipped === 1 ? "is" : "are"} not on the map and left out.`
+      : `${skipped} of the list ${skipped === 1 ? "is" : "are"} already on the map and left out.`;
+    box.appendChild(p);
+  }
+  if (!rows.length) {
+    if (!skipped) box.innerHTML = '<p class="muted">Add a city to get the command.</p>';
+    return;
+  }
+  const key = $("key").value.trim() || "<key>";
+  for (let i = 0; i < rows.length; i += PER_TX) {
+    const part = rows.slice(i, i + PER_TX);
+    const data = part.map((v) => remove ? `${v.cc},${v.name}` : `${v.lat},${v.lon},${v.year},${v.cc},${v.name}`).join(";");
+    // A removal searches the whole stored text once per city, so it takes the
+    // same budget per city as an add.
+    const gas = GAS_BASE + GAS_PER_CITY * part.length;
+    const cmd = `gnokey maketx call -pkgpath ${PKG} -func ${remove ? "RemoveMany" : "AddMany"} ` +
+      `-args ${shellQuote(data)} -gas-fee ${Math.ceil(gas / 1000)}ugnot -gas-wanted ${gas} ` +
+      `-max-deposit ${DEPOSIT_PER_CITY * part.length}ugnot -broadcast -chainid ${CHAIN} -remote ${REMOTE} ${key}`;
+    const div = document.createElement("div");
+    div.className = "cmd";
+    const pre = document.createElement("pre");
+    pre.textContent = cmd;
+    const btn = document.createElement("button");
+    btn.textContent = "Copy";
+    btn.onclick = async () => { await navigator.clipboard.writeText(cmd); btn.textContent = "Copied"; };
+    if (rows.length > PER_TX) {
+      const p = document.createElement("p");
+      p.className = "muted";
+      p.textContent = `Transaction ${i / PER_TX + 1}: ${part.length} cities`;
+      box.appendChild(p);
+    }
+    div.append(pre, btn);
+    box.appendChild(div);
+  }
+}
+
+async function importFile(file) {
+  const st = $("importStatus");
+  st.textContent = "Reading…";
+  try {
+    const doc = JSON.parse(await file.text());
+    if (!Array.isArray(doc.visits)) throw new Error("no visits in this file");
+    const skipped = { wishlist: 0, country: 0, unknown: 0 };
+    let added = 0;
+    const sources = { city: "cities.json", airport: "airports.json", heritage: "heritage.json" };
+    for (const v of doc.visits) {
+      const p = v.place || {};
+      if (v.status === "wishlist") { skipped.wishlist++; continue; }
+      if (p.kind === "country") { skipped.country++; continue; }
+      let at = null;
+      if (p.kind === "custom" && p.lat != null && p.lon != null) at = p;
+      else if (sources[p.kind]) {
+        at = (await load(sources[p.kind])).get(p.id);
+        if (!at && p.kind === "city") {
+          st.textContent = "Loading all 135,000 cities (17 MB)…";
+          at = (await load("cities-all.json")).get(p.id);
+          allLoaded = true;
+        }
+      }
+      if (!at) { skipped.unknown++; continue; }
+      const year = v.date ? parseInt(v.date.slice(0, 4), 10) : 0;
+      if (add({ name: p.name, countryIso2: p.countryId, lat: at.lat, lon: at.lon }, year)) added++;
+    }
+    st.textContent = `Imported ${added} places. Skipped ${skipped.wishlist} wishlist, ` +
+      `${skipped.country} whole countries, ${skipped.unknown} without coordinates.`;
+    render();
+  } catch (e) {
+    st.textContent = "Could not import: " + e.message;
+  }
+}
+
+// readChain fills onChain from the realm's Cities, one "lat,lon,year,CC,name"
+// line per city.
+async function readChain() {
+  const st = $("chain");
+  try {
+    const url = `${REMOTE}/abci_query?path=%22vm/qeval%22&data=%22${btoa(PKG + ".Cities()")}%22`;
+    const res = await (await fetch(url)).json();
+    const rb = res.result.response.ResponseBase;
+    if (rb.Error) throw new Error(rb.Log || "query failed");
+    // qeval answers ("<quoted string>" string).
+    const raw = new TextDecoder().decode(Uint8Array.from(atob(rb.Data), (c) => c.charCodeAt(0)));
+    const text = JSON.parse(raw.slice(1, raw.lastIndexOf(" string)")));
+    onChain.clear();
+    for (const line of text ? text.split("\n") : []) {
+      const [lat, lon, year, cc, name] = line.split(",");
+      onChain.set(cc + "," + name, { name, cc, lat: +lat, lon: +lon, year: +year });
+    }
+    st.textContent = `${onChain.size} cities already on the map at ${PKG}.`;
+  } catch (e) {
+    st.textContent = "Could not read the map on chain: " + e.message;
+  }
+  render();
+}
+
+$("search").oninput = search;
+$("loadChain").onclick = () => { for (const [k, v] of onChain) list.set(k, { ...v }); render(); };
+$("more").onclick = async () => {
+  $("more").disabled = true;
+  $("status").textContent = "Loading all 135,000 cities (17 MB)…";
+  await load("cities-all.json");
+  allLoaded = true;
+  $("status").textContent = "Searching all 135,000 cities.";
+  search();
+};
+$("file").onchange = (e) => e.target.files[0] && importFile(e.target.files[0]);
+$("clear").onclick = () => { list.clear(); render(); };
+$("key").oninput = commands;
+document.querySelectorAll('input[name="mode"]').forEach((r) => (r.onchange = commands));
+
+fetch(DATA + "cities.json").then((r) => r.json()).then((rows) => {
+  cities = rows;
+  $("search").disabled = false;
+  $("status").textContent = "Searching the 10,000 largest cities.";
+}).catch((e) => { $("status").textContent = "Could not load cities: " + e.message; });
+readChain();
+</script>
+</body>
+</html>
