@@ -335,9 +335,10 @@ async function readChain() {
       throw new Error(/package not found|InvalidPkgPath/.test(rb.Log || "")
         ? "no realm at " + PKG + " yet" : "the query failed");
     }
-    // qeval answers ("<quoted string>" string).
+    // qeval answers ("<quoted string>" string), and ( string) for an empty one.
     const raw = new TextDecoder().decode(Uint8Array.from(atob(rb.Data), (c) => c.charCodeAt(0)));
-    const text = JSON.parse(raw.slice(1, raw.lastIndexOf(" string)")));
+    const inner = raw.slice(1, raw.lastIndexOf(" string)"));
+    const text = inner === "" ? "" : JSON.parse(inner);
     onChain.clear();
     // Another realm, or another node, can answer anything: keep the lines in
     // the shape travellog stores and drop the rest.
