@@ -6,6 +6,7 @@ David G.'s packages and realms for [gno.land](https://gno.land).
 | --- | --- |
 | [`gno/r/home`](gno/r/home) | `gno.land/r/g1rayfgklwl0aspz488wvrcrvt7t2quy6q06lgk2/home` |
 | [`gno/p/worldmap`](gno/p/worldmap) | `gno.land/p/g1rayfgklwl0aspz488wvrcrvt7t2quy6q06lgk2/worldmap/v0` |
+| [`gno/p/travellog`](gno/p/travellog) | `gno.land/p/g1rayfgklwl0aspz488wvrcrvt7t2quy6q06lgk2/travellog/v0` |
 | [`gno/r/travels`](gno/r/travels) | `gno.land/r/g1rayfgklwl0aspz488wvrcrvt7t2quy6q06lgk2/travels` |
 
 ## home
@@ -57,36 +58,57 @@ prints the one `gnokey` command that stores all three, through `SetActivity`:
 
 ## travels
 
-A world map with a flag on each city visited, the list of cities by country,
-and one page per year of travel at `:2024` and so on. A flag is the viewer's
-own emoji font, so it costs nothing stored; a system without flag emoji shows
-the two letters of the country instead. The realm stores one line per city,
-`lat,lon,year,CC,name`, about 27 bytes each, and draws everything else on each
-page view.
+A travel page: a world map with a flag on each city visited and its country
+shaded, the share of the world's 195 countries reached, coverage by continent,
+the farthest cities north, south, east and west, and the cities by country.
+Each continent has its own zoomed page at `:europe` and so on, and each year
+at `:2024`. A flag is the viewer's own emoji font, so it costs nothing stored;
+a system without flag emoji shows the two letters of the country instead.
 
-[`worldmap`](gno/p/worldmap) draws the map and stores nothing. Its country
-outlines are Natural Earth's 1:110m data in the Robinson projection, from 84N
-to 58S, written into [`countries.gno`](gno/p/worldmap/countries.gno) by
-`scripts/worldmap.py`. Deploy it before the realm, which imports it.
+Everything heavy is deployed once, in two packages any realm imports:
+
+- [`worldmap`](gno/p/worldmap) draws the map and knows each country's name,
+  continent and outline: Natural Earth's 1:110m shapes in the Robinson
+  projection, from 84N to 58S, with the names and continents of
+  [world-countries](https://github.com/mledoze/countries). Both are written
+  into [`countries.gno`](gno/p/worldmap/countries.gno) by
+  `scripts/worldmap.py`.
+- [`travellog`](gno/p/travellog) holds a `Log` of cities, one line each,
+  `lat,lon,year,CC,name`, about 27 bytes, and renders the whole page from it.
+  `Card` gives the map and one line of counts for a profile page.
+
+[`gno/r/travels`](gno/r/travels) is the realm this repository deploys, and the
+shape anyone can copy under their own address, with their address as admin:
+
+```go
+var log travellog.Log
+
+func AddMany(cur realm, data string)    { assertAdmin(cur); log.AddMany(data) }
+func RemoveMany(cur realm, data string) { assertAdmin(cur); log.RemoveMany(data) }
+func Cities() string                    { return log.Cities() }
+func Render(path string) string         { return log.Render(path, "/r/<address>/travels") }
+```
 
 [`web/travels.html`](web/travels.html) builds the transaction. Open it in a
 browser, search a city or import a Postcards export, and copy the `gnokey`
-command it prints. It reads the cities already on chain first and sends only
-the new ones, since the realm appends without checking. City coordinates come
-from the Postcards reference data on GitHub.
+command it prints; `?pkg=` points it at another realm. It reads the cities
+already on chain first and sends only the new ones, since `AddMany` appends
+without checking. City coordinates come from the Postcards reference data on
+GitHub.
 
 Measured on a local node at mainnet's prices, 1ugnot per 1,000 gas and
 100ugnot per byte stored:
 
 | Action | Gas | Stored | Cost |
 | --- | --- | --- | --- |
-| Deploy `worldmap` | 67M | 55,296 bytes | 5.60 GNOT |
-| Deploy `travels` | 15M | 12,769 bytes | 1.29 GNOT |
-| Add 200 cities | 156M | 5,369 bytes | 0.69 GNOT |
-| Add 1 city | 4M | 28 bytes | 0.007 GNOT |
+| Deploy `worldmap`, once | 90M | 79,816 bytes | 8.07 GNOT |
+| Deploy `travellog`, once | 25M | 18,196 bytes | 1.84 GNOT |
+| Deploy a `travels` realm | 8M | 6,078 bytes | 0.62 GNOT |
+| Add 200 cities | 157M | 5,411 bytes | 0.70 GNOT |
+| Add 1 city | 5M | 27 bytes | 0.008 GNOT |
 
-A page view with 1,000 cities costs 1.17 billion gas, under the 3 billion a
-query may use, so the page holds about 2,000 cities.
+A page view costs 178 million gas with no city and 1.41 billion with 1,000,
+under the 3 billion a query may use, so a page holds about 2,000 cities.
 
 ## Test
 
