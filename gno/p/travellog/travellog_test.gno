@@ -54,6 +54,19 @@ func TestAddManyRejects(t *testing.T) {
 	uassert.Equal(t, 0, l.Len())
 }
 
+func TestMaxCities(t *testing.T) {
+	l := &Log{}
+	batch := strings.Repeat("4886,235,2024,FR,Paris;", 499) + "4886,235,2024,FR,Paris"
+	for i := 0; i < 3; i++ {
+		l.AddMany(batch)
+	}
+	uassert.Equal(t, MaxCities, l.Len())
+	panicsWith(t, "1500 cities at most", func() { l.AddMany("5237,490,2019,NL,Amsterdam") })
+	l.RemoveMany("FR,Paris")
+	l.AddMany("5237,490,2019,NL,Amsterdam")
+	uassert.Equal(t, MaxCities, l.Len())
+}
+
 func TestRemoveMany(t *testing.T) {
 	l := &Log{}
 	l.AddMany("4886,235,2024,FR,Paris;5237,490,2019,NL,Amsterdam;4576,483,0,FR,Lyon;5250,1340,0,DE,Berlin")
@@ -63,6 +76,7 @@ func TestRemoveMany(t *testing.T) {
 	uassert.Equal(t, "4576,483,0,FR,Lyon", l.Cities())
 	l.RemoveMany("FR,Lyon")
 	uassert.Equal(t, "", l.Cities())
+	uassert.Equal(t, 0, l.Len())
 	panicsWith(t, "not on the map: FR,Paris", func() { l.RemoveMany("FR,Paris") })
 }
 

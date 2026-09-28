@@ -23,4 +23,10 @@ func TestOnlyAdmin(cur realm, t *testing.T) {
 	testing.SetRealm(testing.NewUserRealm(mallory))
 	uassert.AbortsContains(t, cur, "unauthorized", func() { AddMany(cross(cur), "4886,235,2024,FR,Paris") })
 	uassert.AbortsContains(t, cur, "unauthorized", func() { RemoveMany(cross(cur), "FR,Paris") })
+	// A realm calling on the admin's behalf is refused too: the check reads
+	// the realm that called, never the account that signed.
+	testing.SetOriginCaller(admin)
+	testing.SetRealm(testing.NewCodeRealm("gno.land/r/evil/proxy"))
+	uassert.AbortsContains(t, cur, "unauthorized", func() { AddMany(cross(cur), "4886,235,2024,FR,Paris") })
+	uassert.Equal(t, "", Cities())
 }

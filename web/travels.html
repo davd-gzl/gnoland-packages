@@ -52,6 +52,10 @@
     padding: 12px; white-space: pre-wrap; word-break: break-all; margin: 8px 0;
     font-size: 13px;
   }
+  .warn {
+    border: 1px solid var(--accent); border-radius: 10px; padding: 12px 16px;
+    margin: 0 0 16px; background: var(--panel);
+  }
   .cmd { position: relative; }
   .cmd pre { padding-right: 64px; }
   .cmd button { position: absolute; top: 6px; right: 6px; font-size: 12px; padding: 2px 8px; }
@@ -64,6 +68,8 @@
   <p class="lead">Pick cities or import a Postcards file, then copy the <code>gnokey</code>
     command that stores them on the travels realm. The page only reads: the cities
     reach the chain when you run the command.</p>
+
+  <p id="target" class="warn" hidden></p>
 
   <section>
     <h2>Add a city</h2>
@@ -80,9 +86,12 @@
     <h2>Import from Postcards</h2>
     <div class="row">
       <input type="file" id="file" accept=".json,application/json">
+      <label><input type="checkbox" id="custom"> Include my own custom places</label>
     </div>
     <div id="importStatus" class="muted">Export from Postcards as JSON
-      (<code>places.postcards.json</code>). Wishlist places and whole countries are skipped.</div>
+      (<code>places.postcards.json</code>). Wishlist places and whole countries are skipped.
+      Custom places are skipped unless ticked: their coordinates are the ones you placed,
+      to about a kilometre, and everything on chain is public.</div>
   </section>
 
   <section>
@@ -111,11 +120,28 @@
 
 <script>
 // The realm and chain the command is written for; ?pkg=, ?chain= and ?remote=
-// point the page at a local node instead.
+// point the page at another realm or a local node. Each ends up in a shell
+// command the reader runs, so a value outside its expected shape is dropped
+// rather than quoted.
 const params = new URLSearchParams(location.search);
-const PKG = params.get("pkg") || "gno.land/r/g1rayfgklwl0aspz488wvrcrvt7t2quy6q06lgk2/travels";
-const CHAIN = params.get("chain") || "gnoland-1";
-const REMOTE = params.get("remote") || "https://rpc.gno.land:443";
+const DEFAULTS = {
+  pkg: "gno.land/r/g1rayfgklwl0aspz488wvrcrvt7t2quy6q06lgk2/travels",
+  chain: "gnoland-1",
+  remote: "https://rpc.gno.land:443",
+};
+const SHAPES = {
+  pkg: /^gno\.land\/r\/[a-z0-9_]+(\/[a-z0-9_]+)*$/,
+  chain: /^[a-z0-9-]{1,50}$/,
+  remote: /^https?:\/\/[A-Za-z0-9.-]+(:[0-9]{1,5})?$/,
+};
+const TARGET = {};
+const ignored = [];
+for (const k of Object.keys(DEFAULTS)) {
+  const v = params.get(k);
+  if (v !== null && !SHAPES[k].test(v)) ignored.push(k);
+  TARGET[k] = v !== null && SHAPES[k].test(v) ? v : DEFAULTS[k];
+}
+const PKG = TARGET.pkg, CHAIN = TARGET.chain, REMOTE = TARGET.remote;
 // Measured on a local node: 200 new cities used 156M gas and 5,369 bytes of
 // storage, at 1ugnot per 1000 gas and 100ugnot per byte. Each figure below
 // keeps a margin over that.
@@ -123,7 +149,8 @@ const PER_TX = 200;
 const GAS_BASE = 5000000;
 const GAS_PER_CITY = 1000000;
 const DEPOSIT_PER_CITY = 5000; // ugnot
-const DATA = "https://raw.githubusercontent.com/offware-apps/Postcards/main/apps/postcards/public/reference/";
+// Pinned to one Postcards commit, so the city data cannot change under the page.
+const DATA = "https://raw.githubusercontent.com/offware-apps/Postcards/895b2abeae290057af17a3500765f48d3e022180/apps/postcards/public/reference/";
 
 const $ = (id) => document.getElementById(id);
 let cities = [];
@@ -143,6 +170,7 @@ async function load(file) {
 }
 
 function flag(cc) {
+  if (!/^[A-Z]{2}$/.test(cc)) return "";
   return String.fromCodePoint(...[...cc].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
 }
 
@@ -230,16 +258,17 @@ function commands() {
     if (!skipped) box.innerHTML = '<p class="muted">Add a city to get the command.</p>';
     return;
   }
-  const key = $("key").value.trim() || "<key>";
+  const key = $("key").value.trim() || "KEY";
   for (let i = 0; i < rows.length; i += PER_TX) {
     const part = rows.slice(i, i + PER_TX);
     const data = part.map((v) => remove ? `${v.cc},${v.name}` : `${v.lat},${v.lon},${v.year},${v.cc},${v.name}`).join(";");
     // A removal searches the whole stored text once per city, so it takes the
     // same budget per city as an add.
     const gas = GAS_BASE + GAS_PER_CITY * part.length;
-    const cmd = `gnokey maketx call -pkgpath ${PKG} -func ${remove ? "RemoveMany" : "AddMany"} ` +
+    const cmd = `gnokey maketx call -pkgpath ${shellQuote(PKG)} -func ${remove ? "RemoveMany" : "AddMany"} ` +
       `-args ${shellQuote(data)} -gas-fee ${Math.ceil(gas / 1000)}ugnot -gas-wanted ${gas} ` +
-      `-max-deposit ${DEPOSIT_PER_CITY * part.length}ugnot -broadcast -chainid ${CHAIN} -remote ${REMOTE} ${key}`;
+      `-max-deposit ${DEPOSIT_PER_CITY * part.length}ugnot -broadcast -chainid ${shellQuote(CHAIN)} ` +
+      `-remote ${shellQuote(REMOTE)} ${shellQuote(key)}`;
     const div = document.createElement("div");
     div.className = "cmd";
     const pre = document.createElement("pre");
@@ -264,17 +293,18 @@ async function importFile(file) {
   try {
     const doc = JSON.parse(await file.text());
     if (!Array.isArray(doc.visits)) throw new Error("no visits in this file");
-    const skipped = { wishlist: 0, country: 0, unknown: 0 };
+    const skipped = { wishlist: 0, country: 0, custom: 0, unknown: 0 };
     let added = 0;
-    const sources = { city: "cities.json", airport: "airports.json", heritage: "heritage.json" };
+    const sources = new Map([["city", "cities.json"], ["airport", "airports.json"], ["heritage", "heritage.json"]]);
     for (const v of doc.visits) {
       const p = v.place || {};
       if (v.status === "wishlist") { skipped.wishlist++; continue; }
       if (p.kind === "country") { skipped.country++; continue; }
+      if (p.kind === "custom" && !$("custom").checked) { skipped.custom++; continue; }
       let at = null;
       if (p.kind === "custom" && p.lat != null && p.lon != null) at = p;
-      else if (sources[p.kind]) {
-        at = (await load(sources[p.kind])).get(p.id);
+      else if (sources.has(p.kind)) {
+        at = (await load(sources.get(p.kind))).get(p.id);
         if (!at && p.kind === "city") {
           st.textContent = "Loading all 135,000 cities (17 MB)…";
           at = (await load("cities-all.json")).get(p.id);
@@ -286,7 +316,7 @@ async function importFile(file) {
       if (add({ name: p.name, countryIso2: p.countryId, lat: at.lat, lon: at.lon }, year)) added++;
     }
     st.textContent = `Imported ${added} places. Skipped ${skipped.wishlist} wishlist, ` +
-      `${skipped.country} whole countries, ${skipped.unknown} without coordinates.`;
+      `${skipped.country} whole countries, ${skipped.custom} custom, ${skipped.unknown} without coordinates.`;
     render();
   } catch (e) {
     st.textContent = "Could not import: " + e.message;
@@ -301,12 +331,18 @@ async function readChain() {
     const url = `${REMOTE}/abci_query?path=%22vm/qeval%22&data=%22${btoa(PKG + ".Cities()")}%22`;
     const res = await (await fetch(url)).json();
     const rb = res.result.response.ResponseBase;
-    if (rb.Error) throw new Error(rb.Log || "query failed");
+    if (rb.Error) {
+      throw new Error(/package not found|InvalidPkgPath/.test(rb.Log || "")
+        ? "no realm at " + PKG + " yet" : "the query failed");
+    }
     // qeval answers ("<quoted string>" string).
     const raw = new TextDecoder().decode(Uint8Array.from(atob(rb.Data), (c) => c.charCodeAt(0)));
     const text = JSON.parse(raw.slice(1, raw.lastIndexOf(" string)")));
     onChain.clear();
-    for (const line of text ? text.split("\n") : []) {
+    // Another realm, or another node, can answer anything: keep the lines in
+    // the shape travellog stores and drop the rest.
+    for (const line of typeof text === "string" && text ? text.split("\n") : []) {
+      if (!/^[+-]?\d{1,5},[+-]?\d{1,5},\d{1,4},[A-Z]{2},[^,;\[\]\n]{1,64}$/.test(line)) continue;
       const [lat, lon, year, cc, name] = line.split(",");
       onChain.set(cc + "," + name, { name, cc, lat: +lat, lon: +lon, year: +year });
     }
@@ -315,6 +351,14 @@ async function readChain() {
     st.textContent = "Could not read the map on chain: " + e.message;
   }
   render();
+}
+
+if (ignored.length || PKG !== DEFAULTS.pkg || CHAIN !== DEFAULTS.chain || REMOTE !== DEFAULTS.remote) {
+  const t = $("target");
+  t.hidden = false;
+  t.textContent = `This link points the page at ${PKG} on ${CHAIN}, through ${REMOTE}. ` +
+    "Check that it is your realm before running a command." +
+    (ignored.length ? ` The link's ${ignored.join(" and ")} had an unexpected shape, so the default is used.` : "");
 }
 
 $("search").oninput = search;

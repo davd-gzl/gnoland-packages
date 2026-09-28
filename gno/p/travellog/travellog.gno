@@ -29,12 +29,18 @@ import (
 	"gno.land/p/g1rayfgklwl0aspz488wvrcrvt7t2quy6q06lgk2/worldmap/v0"
 )
 
-const maxNameLen = 64
+const (
+	maxNameLen = 64
+	// MaxCities keeps the page under the 3 billion gas a page view may use:
+	// 1,500 cities render in 2.3 billion, 2,000 in 3.1 billion.
+	MaxCities = 1500
+)
 
 // Log is a list of cities, one "lat,lon,year,CC,name" line each, in the order
 // added, split by newlines. Its zero value is an empty log.
 type Log struct {
 	lines string
+	n     int // cities in lines
 }
 
 type visit struct {
@@ -47,7 +53,8 @@ type visit struct {
 // AddMany appends cities. data lists them split by ";", each as
 // "lat,lon,year,CC,name": latitude and longitude in hundredths of a degree,
 // the year of the visit, 0 when unknown, the two-letter country code and the
-// name, which holds no comma. One invalid city rejects the whole call.
+// name, which holds no comma. One invalid city, or going past MaxCities,
+// rejects the whole call.
 //
 // AddMany does not look for the city in the log, since that search costs gas
 // in proportion to everything stored: the caller sends only new cities, as
@@ -61,6 +68,10 @@ func (l *Log) AddMany(data string) {
 	for _, line := range add {
 		mustParse(line)
 	}
+	if l.n+len(add) > MaxCities {
+		panic("the map holds " + strconv.Itoa(MaxCities) + " cities at most")
+	}
+	l.n += len(add)
 	if l.lines != "" {
 		l.lines += "\n"
 	}
@@ -76,6 +87,7 @@ func (l *Log) RemoveMany(data string) {
 		if !ok {
 			panic("not on the map: " + key)
 		}
+		l.n--
 		switch {
 		case end < len(l.lines):
 			l.lines = l.lines[:start] + l.lines[end+1:]
@@ -91,12 +103,7 @@ func (l *Log) RemoveMany(data string) {
 func (l *Log) Cities() string { return l.lines }
 
 // Len returns how many cities the log holds.
-func (l *Log) Len() int {
-	if l.lines == "" {
-		return 0
-	}
-	return strings.Count(l.lines, "\n") + 1
-}
+func (l *Log) Len() int { return l.n }
 
 // Render returns the travel page for path, page being the realm's own path
 // the links start from, "/r/<you>/travels" for one. path is "" for the whole

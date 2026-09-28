@@ -107,8 +107,9 @@ Measured on a local node at mainnet's prices, 1ugnot per 1,000 gas and
 | Add 200 cities | 157M | 5,411 bytes | 0.70 GNOT |
 | Add 1 city | 5M | 27 bytes | 0.008 GNOT |
 
-A page view costs 178 million gas with no city and 1.41 billion with 1,000,
-under the 3 billion a query may use, so a page holds about 2,000 cities.
+A page view costs 178 million gas with no city, 1.41 billion with 1,000 and
+2.34 billion with 1,500. The 3 billion a query may use runs out before 2,000,
+so a `Log` refuses to grow past 1,500 cities.
 
 ## Test
 
