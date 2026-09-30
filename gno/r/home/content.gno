@@ -22,7 +22,7 @@ var defaultSlots = []struct{ name, body string }{
 
 Contributing to gno.land since May 2025. GnoVM and chain fixes, docs including the getting started guide, and Peer Dev tutorials. I'm passionate about P2P, low level programming, travelling, urbanism and transportation. I'm a curious person who wants to contribute to the greater good. Open for contribution! 🙂
 
-[GitHub](https://github.com/davd-gzl) · [Peer Dev on YouTube](https://www.youtube.com/@peerdevlearning) · [Personal wiki](https://davd-gzl.github.io/personal-wiki/)`},
+[GitHub](https://github.com/davd-gzl) · [Peer Dev on YouTube](https://www.youtube.com/@peerdevlearning) · [Personal wiki](https://davd-gzl.github.io/personal-wiki/) · [💝 Donate](/r/samcrew/donate:g1rayfgklwl0aspz488wvrcrvt7t2quy6q06lgk2)`},
 	{"gno", `## Gno core
 
 Most of my work goes into [gnolang/gno](https://github.com/gnolang/gno), the [gno.land](https://gno.land) monorepo. [All my merged pull requests are on GitHub](https://github.com/gnolang/gno/pulls?q=is%3Apr+author%3Adavd-gzl+is%3Amerged).`},
